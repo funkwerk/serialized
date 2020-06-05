@@ -1,0 +1,36 @@
+{
+	"name": "serialized",
+	"description": "D XML/JSON serialization code generator based on boilerplate",
+	"license": "BSL-1.0",
+	"authors": [
+		"Mathis Beer"
+	],
+
+	"targetType": "library",
+
+	"dependencies": {
+		"boilerplate": ">=1.5.14",
+		"dshould": ">=1.2.1",
+		"dxml": ">=0.4.1",
+		"unit-threaded": "*",
+		"prettyprint": ">=1.0.5",
+		"sumtype": ">=0.9.4",
+		"std_data_json": ">=0.18.4"
+	},
+
+	"configurations": [
+		{
+			"name": "library"
+		},
+		{
+			"name": "unittest",
+			"targetType": "executable",
+			"targetName": "TestRunner",
+			"targetPath": "build",
+			"preBuildCommands": ["$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f build/ut.d"],
+			"mainSourceFile": "build/ut.d",
+			"sourcePaths": ["src", "unittest"],
+			"importPaths": ["src", "unittest"]
+		}
+	]
+}
