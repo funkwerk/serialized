@@ -14,9 +14,9 @@ static assert(isJSONParserNodeInputRange!JsonValueRange);
 
 struct JsonValueRange
 {
-    public JSONParserNode!string front;
-
     public bool empty;
+
+    private JSONParserNode!string currentValue;
 
     private ValueIterator[] iterators;
 
@@ -31,6 +31,12 @@ struct JsonValueRange
         stepInto(value);
     }
 
+    public @property ref JSONParserNode!string front()
+    in (!empty)
+    {
+        return this.currentValue;
+    }
+
     private void stepInto(JSONValue value)
     {
         alias Token = JSONToken!string;
@@ -38,33 +44,33 @@ struct JsonValueRange
         with (JSONType) final switch (value.type)
         {
             case null_:
-                this.front.literal = Token(null);
+                this.currentValue.literal = Token(null);
                 break;
             case string:
-                this.front.literal = Token(value.str);
+                this.currentValue.literal = Token(value.str);
                 break;
             case integer:
-                this.front.literal = Token(value.integer);
+                this.currentValue.literal = Token(value.integer);
                 break;
             case uinteger:
-                this.front.literal = Token(value.uinteger);
+                this.currentValue.literal = Token(value.uinteger);
                 break;
             case float_:
-                this.front.literal = Token(value.floating);
+                this.currentValue.literal = Token(value.floating);
                 break;
             case array:
-                this.front.kind = JSONParserNodeKind.arrayStart;
+                this.currentValue.kind = JSONParserNodeKind.arrayStart;
                 pushState(value);
                 break;
             case object:
-                this.front.kind = JSONParserNodeKind.objectStart;
+                this.currentValue.kind = JSONParserNodeKind.objectStart;
                 pushState(value);
                 break;
             case true_:
-                this.front.literal = Token(true);
+                this.currentValue.literal = Token(true);
                 break;
             case false_:
-                this.front.literal = Token(false);
+                this.currentValue.literal = Token(false);
                 break;
         }
     }
@@ -83,6 +89,7 @@ struct JsonValueRange
     }
 
     public void popFront()
+    in (!empty)
     {
         if (outOfValues)
         {
@@ -94,14 +101,14 @@ struct JsonValueRange
         {
             if (current.nextIndex == current.value.objectNoRef.length)
             {
-                this.front.kind = JSONParserNodeKind.objectEnd;
+                this.currentValue.kind = JSONParserNodeKind.objectEnd;
                 popState;
                 return;
             }
 
             if (!current.usedKey)
             {
-                this.front.key = current.value.objectNoRef.byKeyValue.drop(current.nextIndex).front.key;
+                this.currentValue.key = current.value.objectNoRef.byKeyValue.drop(current.nextIndex).front.key;
                 current.usedKey = true;
                 return;
             }
@@ -117,7 +124,7 @@ struct JsonValueRange
         {
             if (current.nextIndex == current.value.arrayNoRef.length)
             {
-                this.front.kind = JSONParserNodeKind.arrayEnd;
+                this.currentValue.kind = JSONParserNodeKind.arrayEnd;
                 popState;
                 return;
             }

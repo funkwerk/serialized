@@ -144,6 +144,30 @@ unittest
     value.should.equal(expected);
 }
 
+@("custom decoder with int array")
+unittest
+{
+    // when
+    const value = decode!TypeWithIntArrayDecoder(`[2, 3, 4]`);
+
+    // then
+    auto arr = [2, 3, 4];
+    auto exp = TypeWithIntArrayDecoder(arr);
+
+    value.should.equal(exp);
+}
+
+@(Json.Decode!decodeTypeWithIntArrayDecoder)
+struct TypeWithIntArrayDecoder
+{
+    int[] value;
+}
+
+TypeWithIntArrayDecoder decodeTypeWithIntArrayDecoder(JSONValue value)
+{
+    return TypeWithIntArrayDecoder(decodeJson!(int[])(value));
+}
+
 @("enums are decoded from strings")
 unittest
 {

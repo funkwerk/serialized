@@ -114,7 +114,7 @@ public template decodeJson(T, alias transform, attributes...)
                     return decodeFunction(value);
                 }
             }
-            else static if (is(T == int) || __traits(compiles, decodeValue!T(jsonStream, target)))
+            else static if (__traits(compiles, decodeValue!T(jsonStream, target)))
             {
                 return decodeValue!T(jsonStream, target);
             }
@@ -457,10 +457,18 @@ in (isJSONParserNodeInputRange!JsonStream)
         case literal:
             with (JSONTokenKind) switch (jsonStream.front.literal.kind)
             {
-                case null_: return JSONValue(null);
+                case null_:
+                    jsonStream.popFront;
+                    return JSONValue(null);
                 case boolean: return JSONValue(jsonStream.readBool);
                 case string: return JSONValue(jsonStream.readString);
                 case number:
+                {
+                    scope(success)
+                    {
+                        jsonStream.popFront;
+                    }
+
                     switch (jsonStream.front.literal.number.type)
                     {
                         case JSONNumber.Type.long_:
@@ -470,6 +478,7 @@ in (isJSONParserNodeInputRange!JsonStream)
                         default:
                             throw new JSONException(format!"Unexpected number: %s"(jsonStream.front.literal));
                     }
+                }
                 default:
                     throw new JSONException(format!"Unexpected JSON token: %s"(jsonStream.front));
             }
