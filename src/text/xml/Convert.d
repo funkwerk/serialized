@@ -249,6 +249,34 @@ class Convert
     }
 
     /**
+     * Converts the specified representation to an arbitrary type,
+     * so long the type has a fromString method.
+     */
+    public static T to(T)(string value)
+    if (__traits(compiles, T.fromString(value)))
+    {
+        return T.fromString(value);
+    }
+
+    @("Convert.to with fromString")
+    unittest
+    {
+        struct S
+        {
+            int i;
+
+            static S fromString(string s)
+            {
+                import std.conv : to;
+
+                return S(s.to!int);
+            }
+        }
+
+        Convert.to!S("5").should.equal(S(5));
+    }
+
+    /**
      * Throws: XmlException when the given value does not match the lexical representation of a date and time,
      * or when the date is not in the too distant future.
      */

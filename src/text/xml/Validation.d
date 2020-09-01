@@ -175,7 +175,7 @@ template requireImpl(string conversion)
         {
             return mixin("Convert." ~ conversion ~ "!T(text)");
         }
-        catch (XmlException exception)
+        catch (Exception exception)
         {
             throw new XmlException(format!`element "%s": %s`(node.tag, exception.msg));
         }
@@ -204,7 +204,7 @@ template requireImpl(string conversion)
         {
             return mixin("Convert." ~ conversion ~ "!T(value)");
         }
-        catch (XmlException exception)
+        catch (Exception exception)
         {
             throw new XmlException(format!`element "%s", attribute "%s": %s`(node.tag, name, exception.msg));
         }
