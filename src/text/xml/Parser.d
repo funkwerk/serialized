@@ -32,7 +32,21 @@ public XmlNode parse(string content)
     }
 }
 
-private XmlNode parseDocumentImpl(ref EntityRange!(simpleXML, string) range,
+/// ditto
+public XmlNode parse(R)(ref R range)
+{
+    try
+    {
+        return parseDocumentImpl(range, new MemoryManager);
+    }
+    catch (XMLParsingException exception)
+    {
+        throw new XmlException(format!"not well-formed XML: %s"(exception.msg),
+                exception.file, exception.line, exception);
+    }
+}
+
+private XmlNode parseDocumentImpl(R)(ref R range,
         MemoryManager memoryManager)
 in (!range.empty)
 in (memoryManager !is null)
