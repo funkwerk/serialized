@@ -23,7 +23,7 @@ public XmlNode parse(string content)
     try
     {
         auto range = parseXML!simpleXML(content);
-        return parseDocumentImpl(range, new MemoryManager);
+        return parse(range);
     }
     catch (XMLParsingException exception)
     {
@@ -34,6 +34,7 @@ public XmlNode parse(string content)
 
 /// ditto
 public XmlNode parse(R)(ref R range)
+if(!is(R == string))
 {
     try
     {
