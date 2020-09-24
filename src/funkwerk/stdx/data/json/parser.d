@@ -18,6 +18,7 @@ module funkwerk.stdx.data.json.parser;
 unittest
 {
     import std.algorithm : equal, map;
+    import std.format : format;
 
     // Parse a JSON string to a single value
     JSONValue value = toJSONValue(`{"name": "D", "kind": "language"}`);
@@ -32,7 +33,7 @@ unittest
     // Parse a list of tokens instead of a string
     auto tokens = lexJSON(`{"name": "D", "kind": "language"}`);
     JSONValue value2 = toJSONValue(tokens);
-    assert(value == value2);
+    assert(value == value2, format!"%s != %s"(value, value2));
 }
 
 import std.array : appender;
