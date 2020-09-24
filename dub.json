@@ -15,7 +15,6 @@
 		"unit-threaded": "*",
 		"prettyprint": ">=1.0.5",
 		"sumtype": ">=0.9.4",
-		"std_data_json": ">=0.18.4"
 	},
 
 	"configurations": [

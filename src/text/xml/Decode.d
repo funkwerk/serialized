@@ -7,8 +7,8 @@ import meta.never;
 import meta.SafeUnqual;
 import std.format : format;
 import sumtype;
-import text.xml.Validation : enforceName, normalize, require, requireChild;
 import text.xml.Tree;
+import text.xml.Validation : enforceName, normalize, require, requireChild;
 public import text.xml.Xml;
 
 /**

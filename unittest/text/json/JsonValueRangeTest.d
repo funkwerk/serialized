@@ -1,10 +1,10 @@
 module text.json.JsonValueRangeTest;
 
 import dshould;
+import funkwerk.stdx.data.json.parser;
 import std.algorithm : map;
 import std.json;
 import std.range : array;
-import stdx.data.json.parser;
 import text.json.JsonValueRange;
 
 @("JsonValueRange encodes JSONValue as stdx.data.json token range")

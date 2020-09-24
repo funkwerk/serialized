@@ -1,5 +1,7 @@
 module text.json.Decode;
 
+import funkwerk.stdx.data.json.lexer;
+import funkwerk.stdx.data.json.parser;
 import meta.attributesOrNothing;
 import meta.never;
 import std.algorithm : canFind, map;
@@ -8,8 +10,6 @@ import std.format;
 import std.json : JSONException, JSONValue;
 import std.traits;
 import std.typecons : Nullable;
-import stdx.data.json.lexer;
-import stdx.data.json.parser;
 import text.json.Json;
 import text.json.JsonValueRange;
 import text.time.Convert;
