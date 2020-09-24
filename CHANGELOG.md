@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2020-09-24
+### Fixed
+- Remove file that was breaking LDC build via https://github.com/ldc-developers/ldc/issues/3344 .
+
 ## [1.1.1] - 2020-09-24
 ### Fixed
 - Include a copy of std_data_json and taggedalgebraic directly. Work around DMD bug 21235 by hacking opEquals
