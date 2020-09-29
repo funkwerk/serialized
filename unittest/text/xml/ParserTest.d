@@ -2,8 +2,8 @@ module text.xml.ParserTest;
 
 import dshould;
 import text.xml.Parser;
-import text.xml.Validation;
 import text.xml.Tree;
+import text.xml.Validation;
 import text.xml.XmlException;
 
 @("parses content")

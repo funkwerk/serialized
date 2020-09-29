@@ -4,11 +4,11 @@
  */
 module text.json.JsonValueRange;
 
+import funkwerk.stdx.data.json.lexer;
+import funkwerk.stdx.data.json.parser;
 import std.algorithm : count;
 import std.json;
 import std.range : drop;
-import stdx.data.json.lexer;
-import stdx.data.json.parser;
 
 static assert(isJSONParserNodeInputRange!JsonValueRange);
 
