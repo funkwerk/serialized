@@ -395,3 +395,25 @@ unittest
 
     text.parseJSON.should.equal(expected.parseJSON);
 }
+
+@("encode class")
+unittest
+{
+    // given
+    class Value
+    {
+        int field;
+
+        mixin(GenerateAll);
+    }
+
+    const value = new Value(1);
+
+    // when
+    auto text = encode(value);
+
+    // then
+    const expected = `{ "field": 1 }`;
+
+    text.parseJSON.should.equal(expected.parseJSON);
+}

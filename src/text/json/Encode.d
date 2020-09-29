@@ -28,7 +28,7 @@ in
 {
     static if (is(T == class))
     {
-        assert(value !is null);
+        assert(parameter !is null);
     }
 }
 do
