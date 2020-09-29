@@ -20,7 +20,7 @@ public string encode(T, alias transform = never)(const T value)
 /// ditto
 public JSONValue encodeJson(T)(const T value)
 {
-    return encodeJson!(T, transform)(value);
+    return encodeJson!(T, never)(value);
 }
 
 public JSONValue encodeJson(T, alias transform, attributes...)(const T parameter)
