@@ -65,7 +65,7 @@ public template decodeJson(T, alias transform, attributes...)
         import std.meta : AliasSeq, anySatisfy, ApplyLeft;
         import std.range : array, assocArray, ElementType, enumerate;
 
-        static if (is(T == JSONValue))
+        static if (is(Unqual!T == JSONValue))
         {
             return decodeJSONValue(jsonStream);
         }
