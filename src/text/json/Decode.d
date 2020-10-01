@@ -138,12 +138,10 @@ public template decodeJson(T, alias transform, attributes...)
                 Unqual!T result;
 
                 size_t index;
-                foreach (ref entry; jsonStream.readArray)
-                {
-                    result ~= .decodeJson!(E, transform, attributes)(entry, format!`%s[%s]`(target, index));
+                jsonStream.readArray(() @trusted {
+                    result ~= .decodeJson!(E, transform, attributes)(jsonStream, format!`%s[%s]`(target, index));
                     index++;
-                    enforce!JSONException(entry.empty, "leftover content after array");
-                }
+                });
                 return result;
             }
             else // object
