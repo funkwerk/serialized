@@ -468,19 +468,3 @@ unittest
     // when/then
     text.decode!Value.should.equal(Value(1));
 }
-
-@("array of structs")
-unittest
-{
-    static struct S
-    {
-        int field;
-
-        mixin(GenerateThis);
-    }
-    // given
-    const text = `[{ "field": 1 }]`;
-
-    // when/then
-    text.decode!(S[]).should.equal([S(1)]);
-}
