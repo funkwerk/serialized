@@ -122,16 +122,19 @@ public template decodeJson(T, alias transform, attributes...)
             {
                 static assert(is(string: K), "cannot decode associative array with non-string key from json");
 
-                T result;
+                // decoded separately to handle const values
+                K[] keys;
+                V[] values;
 
                 jsonStream.readObject((string key) @trusted
                 {
                     auto value = .decodeJson!(Unqual!V, transform, attributes)(
                         jsonStream, format!`%s[%s]`(target, key));
 
-                    result[key] = value;
+                    keys ~= key;
+                    values ~= value;
                 });
-                return result;
+                return assocArray(keys, values);
             }
             else static if (is(T : E[], E))
             {

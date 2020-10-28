@@ -468,3 +468,13 @@ unittest
     // when/then
     text.decode!Value.should.equal(Value(1));
 }
+
+@("const associative array")
+unittest
+{
+    // given
+    const text = ` { "key": "value" }`;
+
+    // when/then
+    text.decode!(const(string[string])).should.equal(["key": "value"]);
+}
