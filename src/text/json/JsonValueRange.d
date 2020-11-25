@@ -31,7 +31,7 @@ struct JsonValueRange
         stepInto(value);
     }
 
-    public @property ref JSONParserNode!string front()
+    public @property ref JSONParserNode!string front() return
     in (!empty)
     {
         return this.currentValue;

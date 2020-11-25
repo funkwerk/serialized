@@ -230,10 +230,9 @@ public template decodeJson(T, alias transform, attributes...)
 
                                 static if (!memberIsAliasedToThis)
                                 {
-                                    const fieldTarget = target ~ "." ~ name;
-
                                     __traits(getMember, builder, builderField)
-                                        = .decodeJson!(DecodeType, transform, attributes)(jsonStream, fieldTarget);
+                                        = .decodeJson!(DecodeType, transform, attributes)(
+                                            jsonStream, target ~ "." ~ name);
 
                                     fieldAssigned[fieldIndex] = true;
                                 }
