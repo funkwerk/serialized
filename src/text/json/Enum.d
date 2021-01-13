@@ -45,17 +45,34 @@ unittest
  * Helper to decode a JSON style enum string (ENTRY_NAME) as a DStyle enum (entryName).
  *
  * Use like so: `alias decode = decodeEnum!EnumType;` when forming your encode overload.
+ * Throws: JSONException if the input text does not represent an enum member.
  */
 template decodeEnum(T)
 if (is(T == enum))
 {
     U decodeEnum(U : T)(const string text)
     {
-        import std.conv : to;
+        import std.range : only;
+        import std.conv : ConvException, to;
+        import std.exception : enforce;
+        import std.format : format;
         import std.string : capitalize;
         import std.uni : toLower;
 
-        return (text.split("_").front.toLower ~ text.split("_").dropOne.map!capitalize.join).to!T;
+        enforce!JSONException(!text.empty, "expected member of " ~ T.stringof);
+
+        auto split = text.splitter("_");
+        const camelCase = chain(split.front.toLower.only, split.dropOne.map!capitalize).join;
+
+        try
+        {
+            return camelCase.to!T;
+        }
+        catch (ConvException convException)
+        {
+            throw new JSONException(
+                format!"expected member of %s, not %s (or in D, '%s')"(T.stringof, text, camelCase));
+        }
     }
 }
 
@@ -74,6 +91,9 @@ unittest
 
     decodeJson!(Enum, decode)(JSONValue("TEST_VALUE")).should.be(Enum.testValue);
     decodeJson!(Enum, decode)(JSONValue("IS_HTTP")).should.be(Enum.isHttp);
+    decodeJson!(Enum, decode)(JSONValue("")).should.throwA!JSONException;
+    decodeJson!(Enum, decode)(JSONValue("ISNT_HTTP")).should.throwA!JSONException(
+        "expected member of Enum, not ISNT_HTTP (or in D, 'isntHttp')");
 }
 
 alias isWord = text => text.length > 0 && text.drop(1).all!isLower;
