@@ -20,6 +20,12 @@ struct JsonValueRange
 
     private ValueIterator[] iterators;
 
+    // Authoritative version of this.iterators[this.level].
+    // Pulled out of `iterators` to ensure that "auto foo = jsonValueRange;" duplicates its state.
+    // This allows us to be dup-less.
+    // For the complete rationale for this, see doc/why-we-dont-need-save.md
+    private ValueIterator current;
+
     private int level;
 
     invariant(this.level < cast(int) this.iterators.length);
@@ -77,15 +83,20 @@ struct JsonValueRange
 
     private void pushState(JSONValue value)
     {
-        if (this.level + 1 == this.iterators.length)
+        if (this.level != -1)
         {
-            this.iterators ~= ValueIterator(value);
+            this.iterators[this.level] = this.current;
+        }
+        this.current = ValueIterator(value);
+        this.level++;
+        if (this.level == this.iterators.length)
+        {
+            this.iterators ~= this.current;
         }
         else
         {
-            this.iterators[this.level + 1] = ValueIterator(value);
+            this.iterators[this.level] = this.current;
         }
-        this.level++;
     }
 
     public void popFront()
@@ -139,12 +150,10 @@ struct JsonValueRange
     private void popState()
     {
         this.level--;
-    }
-
-    private ref ValueIterator current()
-    in (!outOfValues)
-    {
-        return this.iterators[this.level];
+        if (!outOfValues)
+        {
+            this.current = this.iterators[this.level];
+        }
     }
 
     public bool outOfValues() const

@@ -163,6 +163,7 @@ public template decodeJson(T, alias transform, attributes...)
                 }
 
                 auto builder = T.Builder();
+                // see doc/why-we-dont-need-save.md
                 auto streamCopy = jsonStream;
 
                 bool[T.ConstructorInfo.fields.length] fieldAssigned;

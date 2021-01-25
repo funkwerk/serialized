@@ -475,6 +475,8 @@ struct JSONParserRange(Input)
         Input _input;
         JSONTokenKind[] _containerStack;
         size_t _containerStackFill = 0;
+        // see doc/why-we-dont-need-save.md
+        JSONTokenKind _currentKind;
         JSONParserNodeKind _prevKind;
         JSONParserNode!String _node;
     }
@@ -525,7 +527,7 @@ struct JSONParserRange(Input)
     {
         if (_containerStackFill)
         {
-            if (_containerStack[_containerStackFill-1] == JSONTokenKind.objectStart)
+            if (_currentKind == JSONTokenKind.objectStart)
                 readNextInObject();
             else readNextInArray();
         }
@@ -542,7 +544,7 @@ struct JSONParserRange(Input)
                 if (_input.front.kind == JSONTokenKind.objectEnd)
                 {
                     _node.kind = JSONParserNodeKind.objectEnd;
-                    _containerStackFill--;
+                    popContainer;
                 }
                 else
                 {
@@ -562,7 +564,7 @@ struct JSONParserRange(Input)
                 if (_input.front.kind == JSONTokenKind.objectEnd)
                 {
                     _node.kind = JSONParserNodeKind.objectEnd;
-                    _containerStackFill--;
+                    popContainer;
                 }
                 else
                 {
@@ -588,7 +590,7 @@ struct JSONParserRange(Input)
                 if (_input.front.kind == JSONTokenKind.arrayEnd)
                 {
                     _node.kind = JSONParserNodeKind.arrayEnd;
-                    _containerStackFill--;
+                    popContainer;
                     _input.popFront();
                 }
                 else
@@ -600,7 +602,7 @@ struct JSONParserRange(Input)
                 if (_input.front.kind == JSONTokenKind.arrayEnd)
                 {
                     _node.kind = JSONParserNodeKind.arrayEnd;
-                    _containerStackFill--;
+                    popContainer;
                     _input.popFront();
                 }
                 else
@@ -640,12 +642,22 @@ struct JSONParserRange(Input)
         }
     }
 
+    private void popContainer()
+    {
+        _containerStackFill--;
+        if (_containerStackFill)
+            _currentKind = _containerStack[_containerStackFill - 1];
+    }
+
     private void pushContainer(JSONTokenKind kind)
     {
         import std.algorithm/*.comparison*/ : max;
+        if (_containerStackFill)
+            _containerStack[_containerStackFill - 1] = _currentKind;
         if (_containerStackFill >= _containerStack.length)
             _containerStack.length = max(32, _containerStack.length*3/2);
         _containerStack[_containerStackFill++] = kind;
+        _currentKind = kind;
     }
 }
 
