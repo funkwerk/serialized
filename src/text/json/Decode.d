@@ -139,8 +139,13 @@ public template decodeJson(T, alias transform, attributes...)
             else static if (is(T : E[], E))
             {
                 Unqual!T result;
-
                 size_t index;
+
+                enforce!JSONException(
+                    jsonStream.front.kind == JSONParserNodeKind.arrayStart,
+                    format!"Invalid JSON:%s expected array, but got %s"(
+                        target ? (" " ~ target) : null, jsonStream.decodeJSONValue));
+
                 jsonStream.readArray(() @trusted {
                     result ~= .decodeJson!(E, transform, attributes)(jsonStream, format!`%s[%s]`(target, index));
                     index++;
@@ -167,6 +172,11 @@ public template decodeJson(T, alias transform, attributes...)
                 auto streamCopy = jsonStream;
 
                 bool[T.ConstructorInfo.fields.length] fieldAssigned;
+
+                enforce!JSONException(
+                    jsonStream.front.kind == JSONParserNodeKind.objectStart,
+                    format!"Invalid JSON:%s expected object, but got %s"(
+                        target ? (" " ~ target) : null, jsonStream.decodeJSONValue));
 
                 jsonStream.readObject((string key) @trusted
                 {

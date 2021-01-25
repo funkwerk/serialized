@@ -452,6 +452,23 @@ unittest
     decode!S(text).should.throwA!JSONException("expected S.field, but got {}");
 }
 
+@("decode object from non-object")
+unittest
+{
+    // given
+    const text = `[]`;
+
+    struct S
+    {
+        int field;
+
+        mixin(GenerateThis);
+    }
+
+    // when/then
+    decode!S(text).should.throwA!JSONException;
+}
+
 @("struct with version_ field")
 unittest
 {
