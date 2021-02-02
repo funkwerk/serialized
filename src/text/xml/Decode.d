@@ -76,115 +76,119 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
         {{
             enum builderField = optionallyRemoveTrailingUnderline!constructorField;
 
-            mixin(formatNamed!q{
-                alias Type = Unqual!(T.ConstructorInfo.FieldInfo.%(constructorField).Type);
-                alias attributes = AliasSeq!(T.ConstructorInfo.FieldInfo.%(constructorField).attributes);
+            alias Type = Unqual!(__traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).Type);
+            alias attributes = AliasSeq!(
+                __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).attributes);
 
-                static if (is(Type : Nullable!Arg, Arg))
+            static if (is(Type : Nullable!Arg, Arg))
+            {
+                alias DecodeType = Arg;
+                enum isNullable = true;
+            }
+            else
+            {
+                alias DecodeType = SafeUnqual!Type;
+                enum isNullable = false;
+            }
+
+            static if (is(Type : SumType!T, T...))
+            {
+                __traits(getMember, builder, builderField) = decodeSumType!T(node);
+            }
+            else static if (udaIndex!(Xml.Attribute, attributes) != -1)
+            {
+                enum name = attributes[udaIndex!(Xml.Attribute, attributes)].name;
+
+                static if (isNullable || __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                 {
-                    alias DecodeType = Arg;
-                    enum isNullable = true;
+                    if (name in node.attributes)
+                    {
+                        __traits(getMember, builder, builderField)
+                            = decodeAttributeLeaf!(DecodeType, name, attributes)(node);
+                    }
                 }
                 else
                 {
-                    alias DecodeType = SafeUnqual!Type;
-                    enum isNullable = false;
+                    __traits(getMember, builder, builderField)
+                        = decodeAttributeLeaf!(DecodeType, name, attributes)(node);
                 }
+            }
+            else static if (udaIndex!(Xml.Element, attributes) != -1)
+            {
+                enum name = attributes[udaIndex!(Xml.Element, attributes)].name;
 
-                static if (is(Type : SumType!T, T...))
+                enum canDecodeNode = isNodeLeafType!(DecodeType, attributes)
+                    || __traits(compiles, .decodeUnchecked!(DecodeType, attributes)(XmlNode.init));
+
+                static if (canDecodeNode)
                 {
-                    builder.%(builderField) = decodeSumType!T(node);
-                }
-                else static if (udaIndex!(Xml.Attribute, attributes) != -1)
-                {
-                    enum name = attributes[udaIndex!(Xml.Attribute, attributes)].name;
-
-                    static if (isNullable || T.ConstructorInfo.FieldInfo.%(constructorField).useDefault)
-                    {
-                        if (name in node.attributes)
-                        {
-                            builder.%(builderField) = decodeAttributeLeaf!(DecodeType, name, attributes)(node);
-                        }
-                    }
-                    else
-                    {
-                        builder.%(builderField) = decodeAttributeLeaf!(DecodeType, name, attributes)(node);
-                    }
-                }
-                else static if (udaIndex!(Xml.Element, attributes) != -1)
-                {
-                    enum name = attributes[udaIndex!(Xml.Element, attributes)].name;
-
-                    enum canDecodeNode = isNodeLeafType!(DecodeType, attributes)
-                        || __traits(compiles, .decodeUnchecked!(DecodeType, attributes)(XmlNode.init));
-
-                    static if (canDecodeNode)
-                    {
-                        static if (isNullable || T.ConstructorInfo.FieldInfo.%(constructorField).useDefault)
-                        {
-                            static assert(
-                                T.ConstructorInfo.FieldInfo.%(constructorField).useDefault,
-                                format!"%s.%(constructorField) is Nullable, but missing @(This.Default)!"
-                                    (fullyQualifiedName!T));
-
-                            auto child = node.findChild(name);
-
-                            if (!child.isNull)
-                            {
-                                builder.%(builderField) = decodeUnchecked!(DecodeType, attributes)(child.get);
-                            }
-                        }
-                        else
-                        {
-                            auto child = node.requireChild(name);
-
-                            builder.%(builderField) = .decodeUnchecked!(DecodeType, attributes)(child);
-                        }
-                    }
-                    else static if (is(DecodeType: U[], U))
-                    {
-                        alias decodeChild = delegate U(XmlNode child)
-                        {
-                            return .decodeUnchecked!(U, attributes)(child);
-                        };
-
-                        auto children = node.findChildren(name).map!decodeChild.array;
-
-                        builder.%(builderField) = children;
-                    }
-                    else
-                    {
-                        pragma(msg, "While decoding field '" ~ name ~ "' of type " ~ DecodeType.stringof ~ ":");
-
-                        // reproduce the error we swallowed earlier
-                        auto _ = .decodeUnchecked!(DecodeType, attributes)(XmlNode.init);
-                    }
-                }
-                else static if (udaIndex!(Xml.Text, attributes) != -1)
-                {
-                    builder.%(builderField) = dxml.util.decodeXML(node.text);
-                }
-                else
-                {
-                    enum sameField(string lhs, string rhs)
-                        = optionallyRemoveTrailingUnderline!lhs == optionallyRemoveTrailingUnderline!rhs;
-                    enum memberIsAliasedToThis = anySatisfy!(
-                        ApplyLeft!(sameField, constructorField),
-                        __traits(getAliasThis, T));
-
-                    static if (memberIsAliasedToThis)
-                    {
-                        // decode inline
-                        builder.%(builderField) = .decodeUnchecked!(DecodeType, attributes)(node);
-                    }
-                    else
+                    static if (isNullable
+                        || __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                     {
                         static assert(
-                            T.ConstructorInfo.FieldInfo.%(constructorField).useDefault,
-                            "Field " ~ fullyQualifiedName!T ~ ".%(constructorField) is required but has no Xml tag");
+                            __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault,
+                            format!"%s." ~ constructorField ~ " is Nullable, but missing @(This.Default)!"
+                                (fullyQualifiedName!T));
+
+                        auto child = node.findChild(name);
+
+                        if (!child.isNull)
+                        {
+                            __traits(getMember, builder, builderField)
+                                = decodeUnchecked!(DecodeType, attributes)(child.get);
+                        }
+                    }
+                    else
+                    {
+                        auto child = node.requireChild(name);
+
+                        __traits(getMember, builder, builderField)
+                            = .decodeUnchecked!(DecodeType, attributes)(child);
                     }
                 }
-            }.values(Info(builderField, constructorField)));
+                else static if (is(DecodeType: U[], U))
+                {
+                    alias decodeChild = delegate U(XmlNode child)
+                    {
+                        return .decodeUnchecked!(U, attributes)(child);
+                    };
+
+                    auto children = node.findChildren(name).map!decodeChild.array;
+
+                    __traits(getMember, builder, builderField) = children;
+                }
+                else
+                {
+                    pragma(msg, "While decoding field '" ~ name ~ "' of type " ~ DecodeType.stringof ~ ":");
+
+                    // reproduce the error we swallowed earlier
+                    auto _ = .decodeUnchecked!(DecodeType, attributes)(XmlNode.init);
+                }
+            }
+            else static if (udaIndex!(Xml.Text, attributes) != -1)
+            {
+                __traits(getMember, builder, builderField) = dxml.util.decodeXML(node.text);
+            }
+            else
+            {
+                enum sameField(string lhs, string rhs)
+                    = optionallyRemoveTrailingUnderline!lhs == optionallyRemoveTrailingUnderline!rhs;
+                enum memberIsAliasedToThis = anySatisfy!(
+                    ApplyLeft!(sameField, constructorField),
+                    __traits(getAliasThis, T));
+
+                static if (memberIsAliasedToThis)
+                {
+                    // decode inline
+                    __traits(getMember, builder, builderField) = .decodeUnchecked!(DecodeType, attributes)(node);
+                }
+                else
+                {
+                    static assert(
+                        __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault,
+                        "Field " ~ fullyQualifiedName!T ~ "." ~ constructorField ~ " is required but has no Xml tag");
+                }
+            }
         }}
 
         return builder.builderValue();
