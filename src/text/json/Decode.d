@@ -9,7 +9,7 @@ import std.conv;
 import std.format;
 import std.json : JSONException, JSONValue;
 import std.traits;
-import std.typecons : Nullable;
+import std.typecons;
 import text.json.Json;
 import text.json.JsonValueRange;
 import text.time.Convert;
@@ -27,7 +27,7 @@ public T decode(T, alias transform = never)(string json)
         assert(stream.empty);
     }
 
-    return decodeJson!(T, transform)(stream, T.stringof);
+    return decodeJson!(T, transform, Yes.logErrors)(stream, T.stringof);
 }
 
 /// ditto
@@ -35,7 +35,7 @@ public T decode(T, alias transform = never)(JSONValue value)
 {
     auto jsonStream = JsonValueRange(value);
 
-    return decodeJson!(T, transform)(jsonStream);
+    return decodeJson!(T, transform, Yes.logErrors)(jsonStream);
 }
 
 /// ditto
@@ -43,7 +43,7 @@ public T decodeJson(T)(JSONValue value)
 {
     auto jsonStream = JsonValueRange(value);
 
-    return decodeJson!(T, never)(jsonStream, T.stringof);
+    return decodeJson!(T, never, Yes.logErrors)(jsonStream, T.stringof);
 }
 
 /// ditto
@@ -51,13 +51,33 @@ public T decodeJson(T, alias transform, attributes...)(JSONValue value)
 {
     auto jsonStream = JsonValueRange(value);
 
-    return decodeJson!(T, transform, attributes)(jsonStream, T.stringof);
+    return decodeJson!(T, transform, Yes.logErrors, attributes)(jsonStream, T.stringof);
+}
+
+// This wrapper for decodeJsonInternal uses pragma(msg) to log the type hierarchy that caused an error.
+public template decodeJson(T, alias transform, Flag!"logErrors" logErrors, attributes...)
+{
+    T decodeJson(JsonStream)(ref JsonStream jsonStream, lazy string target)
+    {
+        static if (__traits(compiles, decodeJsonInternal!(T, transform, No.logErrors, attributes)(jsonStream, target)))
+        {
+            return decodeJsonInternal!(T, transform, No.logErrors, attributes)(jsonStream, target);
+        }
+        else
+        {
+            static if (logErrors)
+            {
+                pragma(msg, "Error trying to decode " ~ fullyQualifiedName!T ~ ":");
+            }
+            return decodeJsonInternal!(T, transform, logErrors, attributes)(jsonStream, target);
+        }
+    }
 }
 
 // lazy string target documents the member or array index which is being decoded.
-public template decodeJson(T, alias transform, attributes...)
+public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logErrors, attributes...)
 {
-    public T decodeJson(JsonStream)(ref JsonStream jsonStream, lazy string target)
+    public T decodeJsonInternal(JsonStream)(ref JsonStream jsonStream, lazy string target)
     in (isJSONParserNodeInputRange!JsonStream)
     {
         import boilerplate.util : formatNamed, optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
@@ -78,7 +98,7 @@ public template decodeJson(T, alias transform, attributes...)
             static assert(!is(EncodedType == T),
                     "`transform` must not return the same type as it takes (infinite recursion).");
 
-            return transform!T(.decodeJson!(EncodedType, transform, attributes)(jsonStream, target));
+            return transform!T(.decodeJson!(EncodedType, transform, logErrors, attributes)(jsonStream, target));
         }
         else
         {
@@ -128,7 +148,7 @@ public template decodeJson(T, alias transform, attributes...)
 
                 jsonStream.readObject((string key) @trusted
                 {
-                    auto value = .decodeJson!(Unqual!V, transform, attributes)(
+                    auto value = .decodeJson!(Unqual!V, transform, logErrors, attributes)(
                         jsonStream, format!`%s[%s]`(target, key));
 
                     keys ~= key;
@@ -147,7 +167,8 @@ public template decodeJson(T, alias transform, attributes...)
                         target ? (" " ~ target) : null, jsonStream.decodeJSONValue));
 
                 jsonStream.readArray(() @trusted {
-                    result ~= .decodeJson!(E, transform, attributes)(jsonStream, format!`%s[%s]`(target, index));
+                    result ~= .decodeJson!(E, transform, logErrors, attributes)(
+                        jsonStream, format!`%s[%s]`(target, index));
                     index++;
                 });
                 return result;
@@ -226,7 +247,7 @@ public template decodeJson(T, alias transform, attributes...)
                                 else
                                 {
                                     __traits(getMember, builder, builderField)
-                                        = .decodeJson!(DecodeType, transform, attributes)(
+                                        = .decodeJson!(DecodeType, transform, logErrors, attributes)(
                                             jsonStream, fullyQualifiedName!T ~ "." ~ name);
 
                                     fieldAssigned[fieldIndex] = true;
@@ -242,7 +263,7 @@ public template decodeJson(T, alias transform, attributes...)
                                 static if (!memberIsAliasedToThis)
                                 {
                                     __traits(getMember, builder, builderField)
-                                        = .decodeJson!(DecodeType, transform, attributes)(
+                                        = .decodeJson!(DecodeType, transform, logErrors, attributes)(
                                             jsonStream, target ~ "." ~ name);
 
                                     fieldAssigned[fieldIndex] = true;
@@ -283,7 +304,7 @@ public template decodeJson(T, alias transform, attributes...)
                         {
                             // alias this: decode from the same json value as the whole object
                             __traits(getMember, builder, builderField)
-                                = .decodeJson!(Type, transform, attributes)(
+                                = .decodeJson!(Type, transform, logErrors, attributes)(
                                     streamCopy, fullyQualifiedName!T ~ "." ~ constructorField);
                         }
                         else static if (!useDefault)
