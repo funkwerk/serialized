@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2021-02-08
+### Added
+- Support `@(Xml.Element)`/`@(Xml.Attribute)` without a name.
+  For `Xml.Element`, the name of the type is used.
+  For `Xml.Attribute`, the name of the field is used.
+
+### Fixed
+- When encountering a JSON decoding compile error, log the sequence of types that led to the error.
+
+## [1.2.2] - 2021-01-25
+### Fixed
+- json: Throw `JSONException` when attempting to decode non-object as object.
+
 ## [1.2.1] - 2021-01-13
 ### Fixed
 - Improve error handling in `text.json.Enum`.
