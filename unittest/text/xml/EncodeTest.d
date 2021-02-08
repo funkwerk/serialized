@@ -376,3 +376,30 @@ private struct SumTypeFixture
         int b;
     }
 }
+
+@("attribute/element without specified name")
+unittest
+{
+    struct Value
+    {
+        @(Xml.Attribute)
+        private int value_;
+
+        mixin(GenerateThis);
+    }
+
+    @(Xml.Element)
+    struct Container
+    {
+        @(Xml.Element)
+        immutable(Value)[] values;
+
+        mixin(GenerateThis);
+    }
+
+    // when
+    const text = Container([Value(1), Value(2), Value(3)]).encode;
+
+    // then
+    text.should.equal(`<Container><Value value="1"/><Value value="2"/><Value value="3"/></Container>`);
+}

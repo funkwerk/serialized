@@ -359,6 +359,27 @@ unittest
     }
 }
 
+private struct SumTypeFixture
+{
+    @(Xml.Element("A"))
+    static struct A
+    {
+        @(Xml.Attribute("a"))
+        int a;
+
+        mixin(GenerateThis);
+    }
+
+    @(Xml.Element("B"))
+    static struct B
+    {
+        @(Xml.Attribute("b"))
+        int b;
+
+        mixin(GenerateThis);
+    }
+}
+
 @("immutable arrays")
 unittest
 {
@@ -388,25 +409,33 @@ unittest
     value.should.equal(expected);
 }
 
-private struct SumTypeFixture
+@("attribute/element without specified name")
+unittest
 {
-    @(Xml.Element("A"))
-    static struct A
+    struct Value
     {
-        @(Xml.Attribute("a"))
-        int a;
+        @(Xml.Attribute)
+        private int value_;
 
         mixin(GenerateThis);
     }
 
-    @(Xml.Element("B"))
-    static struct B
+    @(Xml.Element)
+    struct Container
     {
-        @(Xml.Attribute("b"))
-        int b;
+        @(Xml.Element)
+        immutable(Value)[] values;
 
         mixin(GenerateThis);
     }
+
+    // when
+    auto value = decode!Container(`<Container><Value value="1"/><Value value="2"/><Value value="3"/></Container>`);
+
+    // then
+    auto expected = Container([Value(1), Value(2), Value(3)]);
+
+    value.should.equal(expected);
 }
 
 @(Xml.Element("root"))

@@ -43,7 +43,9 @@ do
 
 private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer, const T value)
 {
-    writer.openStartTag(attributes[udaIndex!(Xml.Element, attributes)].name, Newline.no);
+    enum elementName = Xml.elementName!attributes(typeName!T).get;
+
+    writer.openStartTag(elementName, Newline.no);
 
     // encode all the attribute members
     static foreach (member; FilterMembers!(T, value, true))
@@ -51,7 +53,7 @@ private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer
         auto memberValue = __traits(getMember, value, member);
         alias memberAttrs = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
         alias PlainMemberT = typeof(cast() memberValue);
-        enum name = memberAttrs[udaIndex!(Xml.Attribute, memberAttrs)].name;
+        enum name = Xml.attributeName!memberAttrs(optionallyRemoveTrailingUnderline!member).get;
 
         static if (is(PlainMemberT : Nullable!Arg, Arg))
         {
@@ -73,7 +75,8 @@ private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer
         auto memberValue = __traits(getMember, value, member);
         alias memberAttrs = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
         alias PlainMemberT = typeof(cast() memberValue);
-        enum hasXmlTag = udaIndex!(Xml.Element, memberAttrs) != -1 || udaIndex!(Xml.Text, memberAttrs) != -1;
+        enum hasXmlTag = !Xml.elementName!memberAttrs(typeName!PlainMemberT).isNull
+            || udaIndex!(Xml.Text, memberAttrs) != -1;
         enum isSumType = is(PlainMemberT : SumType!U, U...);
 
         static if (hasXmlTag || isSumType)
@@ -100,13 +103,14 @@ private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer
         {{
             auto memberValue = __traits(getMember, value, member);
             alias memberAttrs = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
+            alias PlainMemberT = typeof(cast() memberValue);
+            enum name = Xml.elementName!memberAttrs(typeName!PlainMemberT);
 
-            static if (udaIndex!(Xml.Element, memberAttrs) != -1)
+            static if (!name.isNull)
             {
-                alias PlainMemberT = typeof(cast() memberValue);
-                enum name = memberAttrs[udaIndex!(Xml.Element, memberAttrs)].name;
+                enum string nameGet__ = name.get; // work around for weird compiler bug
 
-                encodeNodeImpl!(name, PlainMemberT, memberAttrs)(writer, memberValue);
+                encodeNodeImpl!(nameGet__, PlainMemberT, memberAttrs)(writer, memberValue);
             }
             else static if (udaIndex!(Xml.Text, memberAttrs) != -1)
             {
@@ -139,7 +143,7 @@ private void encodeSumType(T)(ref XMLWriter!(Appender!string) writer, const T va
         mixin enforceTypeHasElementTag!(BaseType, "every member type of SumType");
 
         alias attributes = AliasSeq!(__traits(getAttributes, BaseType));
-        enum name = attributes[udaIndex!(Xml.Element, attributes)].name;
+        enum name = Xml.elementName!attributes(typeName!BaseType).get;
 
         encodeNodeImpl!(name, T, attributes)(writer, value);
     }, T.Types));
@@ -148,10 +152,12 @@ private void encodeSumType(T)(ref XMLWriter!(Appender!string) writer, const T va
 private mixin template enforceTypeHasElementTag(T, string context)
 {
     static assert(
-        udaIndex!(Xml.Element, __traits(getAttributes, T)) != -1,
+        !Xml.elementName!(__traits(getAttributes, T))(typeName!T).isNull,
         fullyQualifiedName!T ~
         ": " ~ context ~ " must have an Xml.Element attribute indicating its element name.");
 }
+
+private enum typeName(T) = typeof(cast() T.init).stringof;
 
 private template FilterMembers(T, alias value, bool keepXmlAttributes)
 {
@@ -166,11 +172,11 @@ private template attrFilter(alias value, bool keepXmlAttributes, string member)
         alias attributes = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
         static if (keepXmlAttributes)
         {
-            enum bool attrFilter = udaIndex!(Xml.Attribute, attributes) != -1;
+            enum bool attrFilter = !Xml.attributeName!(attributes)("").isNull;
         }
         else
         {
-            enum bool attrFilter = udaIndex!(Xml.Attribute, attributes) == -1;
+            enum bool attrFilter = Xml.attributeName!(attributes)("").isNull;
         }
     }
     else

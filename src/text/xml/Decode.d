@@ -32,14 +32,14 @@ public T decodeXml(T)(XmlNode node)
 {
     import std.traits : fullyQualifiedName;
 
+    enum name = Xml.elementName!(__traits(getAttributes, T))(typeName!T);
+
     static assert(
-        udaIndex!(Xml.Element, __traits(getAttributes, T)) != -1,
+        !name.isNull,
         fullyQualifiedName!T ~
         ": type passed to text.xml.decode must have an Xml.Element attribute indicating its element name.");
 
-    enum name = __traits(getAttributes, T)[udaIndex!(Xml.Element, __traits(getAttributes, T))].name;
-
-    node.enforceName(name);
+    node.enforceName(name.get);
 
     return decodeUnchecked!T(node);
 }
@@ -95,9 +95,9 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
             {
                 __traits(getMember, builder, builderField) = decodeSumType!T(node);
             }
-            else static if (udaIndex!(Xml.Attribute, attributes) != -1)
+            else static if (!Xml.attributeName!attributes(builderField).isNull)
             {
-                enum name = attributes[udaIndex!(Xml.Attribute, attributes)].name;
+                enum name = Xml.attributeName!attributes(builderField).get;
 
                 static if (isNullable || __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                 {
@@ -113,15 +113,16 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
                         = decodeAttributeLeaf!(DecodeType, name, attributes)(node);
                 }
             }
-            else static if (udaIndex!(Xml.Element, attributes) != -1)
+            else static if (!Xml.elementName!attributes(typeName!Type).isNull)
             {
-                enum name = attributes[udaIndex!(Xml.Element, attributes)].name;
 
                 enum canDecodeNode = isNodeLeafType!(DecodeType, attributes)
                     || __traits(compiles, .decodeUnchecked!(DecodeType, attributes)(XmlNode.init));
 
                 static if (canDecodeNode)
                 {
+                    enum name = Xml.elementName!attributes(typeName!Type).get;
+
                     static if (isNullable
                         || __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                     {
@@ -148,6 +149,8 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
                 }
                 else static if (is(DecodeType: U[], U))
                 {
+                    enum name = Xml.elementName!attributes(typeName!U).get;
+
                     alias decodeChild = delegate U(XmlNode child)
                     {
                         return .decodeUnchecked!(U, attributes)(child);
@@ -205,6 +208,7 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
     import std.array : array, front;
     import std.exception : enforce;
     import std.meta : AliasSeq, staticMap;
+    import std.traits : fullyQualifiedName;
     import std.typecons : apply, Nullable, nullable;
     import text.xml.XmlException : XmlException;
 
@@ -214,21 +218,23 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
     {{
         static if (is(Type: U[], U))
         {
-            alias attributes = AliasSeq!(__traits(getAttributes, U));
             enum isArray = true;
+            alias BaseType = U;
         }
         else
         {
-            alias attributes = AliasSeq!(__traits(getAttributes, Type));
             enum isArray = false;
+            alias BaseType = Type;
         }
 
+        alias attributes = AliasSeq!(__traits(getAttributes, BaseType));
+
         static assert(
-            udaIndex!(Xml.Element, attributes) != -1,
+            !Xml.elementName!attributes(typeName!BaseType).isNull,
             fullyQualifiedName!Type ~
             ": SumType component type must have an Xml.Element attribute indicating its element name.");
 
-        enum name = attributes[udaIndex!(Xml.Element, attributes)].name;
+        enum name = Xml.elementName!attributes(typeName!BaseType).get;
 
         static if (isArray)
         {
@@ -256,7 +262,7 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
     return decodedValues[].find!(a => !a.isNull).front.get;
 }
 
-private enum typeName(T) = T.stringof;
+private enum typeName(T) = typeof(cast() T.init).stringof;
 
 private auto decodeAttributeLeaf(T, string name, attributes...)(XmlNode node)
 {
