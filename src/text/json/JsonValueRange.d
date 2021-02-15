@@ -20,83 +20,42 @@ struct JsonValueRange
 
     private ValueIterator[] iterators;
 
-    // Authoritative version of this.iterators[this.level].
-    // Pulled out of `iterators` to ensure that "auto foo = jsonValueRange;" duplicates its state.
-    // This allows us to be dup-less.
-    // For the complete rationale for this, see doc/why-we-dont-need-save.md
-    private ValueIterator current;
+    /**
+     * In order to allow us to be save()-less, it is not enough to just have the current iterator as array state!
+     * Consider the following case: [ A, B ], where A and B are objects.
+     * When decoding A, we are set to objectStart, but the current iterator is already A: that is, the iteration
+     * state on the level of [] is the previous state and thus must be saved also.
+     * Otherwise, when we finish parsing A, we will *consume* objectEnd and position ourselves at objectStart
+     * for B, advancing the state for the array iterator - which is one up from where we started.
+     */
+    private ValueIterator current, previous;
 
     private int level;
 
-    invariant(this.level < cast(int) this.iterators.length);
+    invariant(this.level <= cast(int) this.iterators.length);
 
     public this(JSONValue value)
     {
         this.empty = false;
-        this.level = -1;
+        // current = 0, previous = -1
+        this.level = -2;
         stepInto(value);
+    }
+
+    // For debugging.
+    string toString()
+    {
+        import std.format : format;
+        import std.algorithm : max;
+
+        return format!"JsonValueRange(%s, %s, %s: %s > %s > %s)"(
+            empty, currentValue, level, current, previous, iterators[0 .. max(0, level)]);
     }
 
     public @property ref JSONParserNode!string front() return
     in (!empty)
     {
         return this.currentValue;
-    }
-
-    private void stepInto(JSONValue value)
-    {
-        alias Token = JSONToken!string;
-
-        with (JSONType) final switch (value.type)
-        {
-            case null_:
-                this.currentValue.literal = Token(null);
-                break;
-            case string:
-                this.currentValue.literal = Token(value.str);
-                break;
-            case integer:
-                this.currentValue.literal = Token(value.integer);
-                break;
-            case uinteger:
-                this.currentValue.literal = Token(value.uinteger);
-                break;
-            case float_:
-                this.currentValue.literal = Token(value.floating);
-                break;
-            case array:
-                this.currentValue.kind = JSONParserNodeKind.arrayStart;
-                pushState(value);
-                break;
-            case object:
-                this.currentValue.kind = JSONParserNodeKind.objectStart;
-                pushState(value);
-                break;
-            case true_:
-                this.currentValue.literal = Token(true);
-                break;
-            case false_:
-                this.currentValue.literal = Token(false);
-                break;
-        }
-    }
-
-    private void pushState(JSONValue value)
-    {
-        if (this.level != -1)
-        {
-            this.iterators[this.level] = this.current;
-        }
-        this.current = ValueIterator(value);
-        this.level++;
-        if (this.level == this.iterators.length)
-        {
-            this.iterators ~= this.current;
-        }
-        else
-        {
-            this.iterators[this.level] = this.current;
-        }
     }
 
     public void popFront()
@@ -139,12 +98,73 @@ struct JsonValueRange
                 popState;
                 return;
             }
-            stepInto(current.value.arrayNoRef[current.nextIndex++]);
+            auto value = current.value.arrayNoRef[current.nextIndex];
+
+            current.nextIndex++;
+            stepInto(value);
         }
         else
         {
-            assert(false, "unexpected value type");
+            import std.format : format;
+
+            assert(false, format!"unexpected value type: %s"(current.value.type));
         }
+    }
+
+    private void stepInto(JSONValue value)
+    {
+        alias Token = JSONToken!string;
+
+        with (JSONType) final switch (value.type)
+        {
+            case null_:
+                this.currentValue.literal = Token(null);
+                break;
+            case string:
+                this.currentValue.literal = Token(value.str);
+                break;
+            case integer:
+                this.currentValue.literal = Token(value.integer);
+                break;
+            case uinteger:
+                this.currentValue.literal = Token(value.uinteger);
+                break;
+            case float_:
+                this.currentValue.literal = Token(value.floating);
+                break;
+            case array:
+                this.currentValue.kind = JSONParserNodeKind.arrayStart;
+                pushState(value);
+                break;
+            case object:
+                this.currentValue.kind = JSONParserNodeKind.objectStart;
+                pushState(value);
+                break;
+            case true_:
+                this.currentValue.literal = Token(true);
+                break;
+            case false_:
+                this.currentValue.literal = Token(false);
+                break;
+        }
+    }
+
+    private void pushState(JSONValue value)
+    {
+        if (this.level >= 0)
+        {
+            if (this.level == this.iterators.length)
+            {
+                this.iterators ~= this.previous;
+            }
+            else
+            {
+                this.iterators[this.level] = this.previous;
+            }
+        }
+        this.previous = this.current;
+        this.current = ValueIterator(value);
+        this.level++;
     }
 
     private void popState()
@@ -152,13 +172,17 @@ struct JsonValueRange
         this.level--;
         if (!outOfValues)
         {
-            this.current = this.iterators[this.level];
+            this.current = this.previous;
+            if (this.level >= 0) // handle -1 case
+            {
+                this.previous = this.iterators[this.level];
+            }
         }
     }
 
     public bool outOfValues() const
     {
-        return this.level == -1;
+        return this.level == -2;
     }
 }
 

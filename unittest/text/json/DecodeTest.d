@@ -262,6 +262,49 @@ unittest
     actual.should.equal(expected);
 }
 
+static foreach (bool useJsonValueRange; [false, true])
+{
+    @("array of structs with alias-this is decoded" ~ (useJsonValueRange ? " from JsonStream" : ""))
+    unittest
+    {
+        struct A
+        {
+            int a;
+
+            mixin(GenerateAll);
+        }
+
+        struct B
+        {
+            A a;
+
+            int b;
+
+            alias a this;
+
+            mixin(GenerateAll);
+        }
+
+        // given
+        const text = `[{ "a": 1, "b": 2 }, { "a": 3, "b": 4}]`;
+
+        // when
+        static if (useJsonValueRange)
+        {
+            const actual = decodeJson!(B[])(text.parseJSON);
+        }
+        else
+        {
+            const actual = decode!(B[])(text);
+        }
+
+        // then
+        const expected = [B(A(1), 2), B(A(3), 4)];
+
+        actual.should.equal(expected);
+    }
+}
+
 struct NestedValue
 {
     @(Json("Element"))

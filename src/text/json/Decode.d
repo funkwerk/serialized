@@ -233,23 +233,19 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
 
                         if (key == name)
                         {
-                            keyUsed = true;
                             static if (isNullable ||
                                 __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                             {
                                 const tokenIsNull = jsonStream.front.kind == JSONParserNodeKind.literal
                                     && jsonStream.front.literal.kind == JSONTokenKind.null_;
 
-                                if (tokenIsNull)
-                                {
-                                    jsonStream.skipValue;
-                                }
-                                else
+                                if (!tokenIsNull)
                                 {
                                     __traits(getMember, builder, builderField)
                                         = .decodeJson!(DecodeType, transform, logErrors, attributes)(
                                             jsonStream, fullyQualifiedName!T ~ "." ~ name);
 
+                                    keyUsed = true;
                                     fieldAssigned[fieldIndex] = true;
                                 }
                             }
@@ -266,6 +262,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                                         = .decodeJson!(DecodeType, transform, logErrors, attributes)(
                                             jsonStream, target ~ "." ~ name);
 
+                                    keyUsed = true;
                                     fieldAssigned[fieldIndex] = true;
                                 }
                             }
@@ -278,6 +275,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                     }
                 });
 
+                // fix up default values and alias this fields
                 static foreach (fieldIndex, const constructorField; T.ConstructorInfo.fields)
                 {{
                     enum builderField = optionallyRemoveTrailingUnderline!constructorField;

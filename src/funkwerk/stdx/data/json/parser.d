@@ -489,6 +489,15 @@ struct JSONParserRange(Input)
         _input = input;
     }
 
+    // For debugging.
+    string toString()
+    {
+        import std.format : format;
+
+        return format!"JSONParserRange(%s, %s, %s, %s)"(
+            _containerStack[0 .. _containerStackFill], _currentKind, _prevKind, _node);
+    }
+
     /**
      * Determines of the range has been exhausted.
      */
@@ -651,7 +660,7 @@ struct JSONParserRange(Input)
 
     private void pushContainer(JSONTokenKind kind)
     {
-        import std.algorithm/*.comparison*/ : max;
+        import std.algorithm : max;
         if (_containerStackFill)
             _containerStack[_containerStackFill - 1] = _currentKind;
         if (_containerStackFill >= _containerStack.length)
@@ -670,7 +679,7 @@ struct JSONParserRange(Input)
 struct JSONParserNode(String)
 {
     @safe:
-    import std.algorithm/*.comparison*/ : among;
+    import std.algorithm : among;
     import funkwerk.stdx.data.json.foundation : Location;
 
     private alias Kind = JSONParserNodeKind; // compatibility alias
