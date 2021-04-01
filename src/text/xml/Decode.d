@@ -162,7 +162,7 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
                 }
                 else
                 {
-                    pragma(msg, "While decoding field '" ~ name ~ "' of type " ~ DecodeType.stringof ~ ":");
+                    pragma(msg, "While decoding field '" ~ constructorField ~ "' of type " ~ DecodeType.stringof ~ ":");
 
                     // reproduce the error we swallowed earlier
                     auto _ = .decodeUnchecked!(DecodeType, attributes)(XmlNode.init);
