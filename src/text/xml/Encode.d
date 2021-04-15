@@ -167,7 +167,7 @@ private template FilterMembers(T, alias value, bool keepXmlAttributes)
 
 private template attrFilter(alias value, bool keepXmlAttributes, string member)
 {
-    static if (__traits(compiles, { return __traits(getMember, value, member); }))
+    static if (__traits(compiles, { auto value = __traits(getMember, value, member); }))
     {
         alias attributes = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
         static if (keepXmlAttributes)
