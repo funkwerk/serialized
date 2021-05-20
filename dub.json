@@ -9,7 +9,7 @@
 	"targetType": "library",
 
 	"dependencies": {
-		"boilerplate": ">=1.5.14",
+		"boilerplate": ">=1.7.4",
 		"dshould": ">=1.2.1",
 		"dxml": ">=0.4.1",
 		"unit-threaded": "*",
