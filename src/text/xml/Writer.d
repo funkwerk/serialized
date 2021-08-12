@@ -5,7 +5,7 @@ import dxml.writer;
 import std.array;
 import std.range;
 import std.typecons;
-import text.xml.Tree;
+import text.xml.XmlNode;
 
 /**
  * This struct is used to output XML string representation in a specific

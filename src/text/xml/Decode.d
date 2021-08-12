@@ -7,9 +7,9 @@ import meta.never;
 import meta.SafeUnqual;
 import std.format : format;
 import sumtype;
-import text.xml.Tree;
 import text.xml.Validation : enforceName, normalize, require, requireChild;
 public import text.xml.Xml;
+import text.xml.XmlNode;
 
 /**
  * Throws: XmlException if the message is not well-formed or doesn't match the type

@@ -9,8 +9,8 @@ import std.exception;
 import std.range;
 import std.string;
 import text.xml.Convert;
-import text.xml.Tree;
 import text.xml.XmlException;
+import text.xml.XmlNode;
 
 alias nodes = filter!(node => node.type == XmlNode.Type.element);
 

@@ -1,4 +1,4 @@
-deprecated("Please use text.xml.Tree instead")
+deprecated("Please use text.xml.XmlNode instead")
 module text.xml.tree;
 
-public import text.xml.Tree;
+public import text.xml.XmlNode;

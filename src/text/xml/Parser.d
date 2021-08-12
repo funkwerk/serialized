@@ -7,8 +7,8 @@ import std.array;
 import std.conv;
 import std.format;
 import std.typecons;
-import text.xml.Tree;
 import text.xml.XmlException;
+import text.xml.XmlNode;
 
 /**
  * Parses the specified content as an XML document.
