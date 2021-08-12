@@ -6,6 +6,10 @@ import std.algorithm;
 import std.range;
 import std.typecons;
 import text.xml.Writer;
+version (unittest)
+{
+    import dshould;
+}
 
 /**
  * This struct represents an XML node.
@@ -29,28 +33,64 @@ struct XmlNode
 
     public Attributes attributes;
 
+    /// Create an XML node with a tag.
     public this(const string tag) @nogc nothrow pure @safe
     {
         this.type_ = Type.element;
         this.tag_ = tag;
     }
 
+    ///
+    unittest
+    {
+        XmlNode("Foo").toString.should.be(
+            `<Foo/>`
+        );
+    }
+
+    /// Create an XML node with a tag and a list of children.
     public this(const string tag, XmlNode[] children) nothrow pure @safe
     {
         this(tag);
         this.children = children.dup;
     }
 
+    ///
+    unittest
+    {
+        XmlNode("Foo", [XmlNode("Bar")]).toString.should.be(
+            `<Foo><Bar/></Foo>`
+        );
+    }
+
+    /// Create an XML node with a tag and a set of attributes.
     public this(const string tag, const string[string] attributes) nothrow pure @safe
     {
         this(tag);
         this.attributes = Attributes(attributes.byKeyValue.map!(a => Attribute(a.key, a.value)));
     }
 
+    ///
+    unittest
+    {
+        XmlNode("Foo", ["bar": "baz"]).toString.should.be(
+            `<Foo bar="baz"/>`
+        );
+    }
+
+    /// Create an XML node with a tag, a set of attributes and a list of children.
     public this(const string tag, const string[string] attributes, XmlNode[] children) nothrow pure @safe
     {
         this(tag, attributes);
         this.children = children.dup;
+    }
+
+    ///
+    unittest
+    {
+        XmlNode("Foo", ["bar": "baz"], [XmlNode("Fob")]).toString.should.be(
+            `<Foo bar="baz"><Fob/></Foo>`
+        );
     }
 
     public this(const Type type, const string tag, XmlNode[] children = null, Attributes attributes = Attributes.init)
@@ -62,6 +102,7 @@ struct XmlNode
         this.attributes = attributes;
     }
 
+    /// Get the tag of the XML node.
     public @property string tag() const @nogc nothrow pure @safe
     {
         return this.tag_;
@@ -72,6 +113,7 @@ struct XmlNode
         return this.type_;
     }
 
+    /// Find all direct children of the XML node whose tag matches the parameter.
     public auto findChildren(string tag) @nogc pure @safe
     {
         import std.traits : CopyConstness, Unqual;
@@ -126,6 +168,21 @@ struct XmlNode
         return FindChildrenRange!XmlNode(this.children, tag);
     }
 
+    ///
+    unittest
+    {
+        auto node = XmlNode("Foo", [
+            XmlNode("Bar"),
+            XmlNode("Baz"),
+        ]);
+
+        node.findChildren("Baz").should.be([XmlNode("Baz")]);
+    }
+
+    /**
+     * Find the first child of the XML node with the given tag.
+     * Returns Nullable.null if no such child was found.
+     */
     public Nullable!XmlNode findChild(const string tag) @nogc pure @safe
     {
         auto result = findChildren(tag);
@@ -133,23 +190,71 @@ struct XmlNode
         return result.empty ? typeof(return)() : nullable(result.front);
     }
 
+    ///
+    unittest
+    {
+        auto node = XmlNode("Foo", [
+            XmlNode("Bar", ["a": "1"]),
+            XmlNode("Bar", ["a": "2"]),
+        ]);
+
+        node.findChild("Bar").should.be(XmlNode("Bar", ["a": "1"]).nullable);
+        node.findChild("Baz").should.be(Nullable!XmlNode());
+
+    }
+
+    /**
+     * Remove all direct children of the XML node with the given tag.
+     */
     public void removeChildren(const string tag) nothrow pure @safe
     {
         this.children = this.children.filter!(a => a.tag != tag).array;
     }
 
+    ///
+    unittest
+    {
+        auto node = XmlNode("Foo", [XmlNode("Bar"), XmlNode("Baz")]);
+
+        node.removeChildren("Bar");
+        node.should.be(XmlNode("Foo", [XmlNode("Baz")]));
+    }
+
+
+    /**
+     * Remove the direct child of the XML node with a given tag.
+     * An error is thrown if there is more than one.
+     */
     public void removeChild(const string tag) nothrow pure @safe
     in (this.children.count!(a => a.tag == tag) <= 1)
     {
         removeChildren(tag);
     }
 
+    /**
+     * Replace the direct child of the XML node with a given tag, with a new XML node.
+     * An error is thrown if there is more than one.
+     */
     public void replaceChild(const string tag, XmlNode replacement) nothrow pure @safe
     in (this.children.count!(a => a.tag == tag) == 1)
     {
         this.children = this.children.map!(a => (a.tag == tag) ? replacement : a).array;
     }
 
+    ///
+    unittest
+    {
+        auto node = XmlNode("Foo", [XmlNode("Bar"), XmlNode("Baz")]);
+
+        node.replaceChild("Bar", XmlNode("Fob"));
+        node.should.be(XmlNode("Foo", [XmlNode("Fob"), XmlNode("Baz")]));
+    }
+
+    /**
+     * Get the 'plain text' representation of this XML node.
+     * That is, the textual contents of the XML tree,
+     * children included in depth-first order, without tags.
+     */
     public @property string text() const pure @safe
     {
         if (this.type == Type.text)
@@ -159,6 +264,9 @@ struct XmlNode
         return this.children.map!(child => child.text).join;
     }
 
+    /**
+     * Get the XML text representation of this XML node.
+     */
     public string toString() const
     {
         auto sink = appender!string();
@@ -168,6 +276,7 @@ struct XmlNode
         return sink.data;
     }
 
+    ///
     public void toString(scope void delegate(const(char)[]) sink) const
     {
         auto writer = customXmlWriter!(No.pretty)(sink);
@@ -175,12 +284,29 @@ struct XmlNode
         writer.write(this);
     }
 
+    /// Add an attribute to this XML node.
     public XmlNode addAttribute(string name, string value)
     {
         this.attributes.attributes ~= Attribute(name, value);
         return this;
     }
 
+    ///
+    unittest
+    {
+        auto node = XmlNode("Foo");
+
+        node.addAttribute("bar", "baz");
+        node.toString.should.be(
+            `<Foo bar="baz"/>`
+        );
+    }
+
+    /**
+     * Manually free the memory claimed by this XML node and its children.
+     * This can be used when the GC is "being stupid about it".
+     * Note that you *must* ensure no external references to the node remain!
+     */
     public void free()
     {
         import core.memory : GC;

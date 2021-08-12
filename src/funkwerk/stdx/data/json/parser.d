@@ -917,9 +917,6 @@ void skipValue(R)(ref R nodes) if (isJSONParserNodeInputRange!R)
  *
  * Returns:
  *   `true` is returned if and only if the specified key has been found.
- *
- * Params:
- *   nodes = An input range of JSON parser nodes
  */
 bool skipToKey(R)(ref R nodes, string key) if (isJSONParserNodeInputRange!R)
 {
