@@ -126,11 +126,28 @@ struct XmlNode
         return FindChildrenRange!XmlNode(this.children, tag);
     }
 
-    public Nullable!XmlNode findChild(string tag) @nogc pure @safe
+    public Nullable!XmlNode findChild(const string tag) @nogc pure @safe
     {
         auto result = findChildren(tag);
 
         return result.empty ? typeof(return)() : nullable(result.front);
+    }
+
+    public void removeChildren(const string tag) nothrow pure @safe
+    {
+        this.children = this.children.filter!(a => a.tag != tag).array;
+    }
+
+    public void removeChild(const string tag) nothrow pure @safe
+    in (this.children.count!(a => a.tag == tag) <= 1)
+    {
+        removeChildren(tag);
+    }
+
+    public void replaceChild(const string tag, XmlNode replacement) nothrow pure @safe
+    in (this.children.count!(a => a.tag == tag) == 1)
+    {
+        this.children = this.children.map!(a => (a.tag == tag) ? replacement : a).array;
     }
 
     public @property string text() const pure @safe
