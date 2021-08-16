@@ -167,7 +167,9 @@ private template FilterMembers(T, alias value, bool keepXmlAttributes)
 
 private template attrFilter(alias value, bool keepXmlAttributes, string member)
 {
-    static if (__traits(compiles, { auto value = __traits(getMember, value, member); }))
+    // double-check that the member has a type to work around https://issues.dlang.org/show_bug.cgi?id=22214
+    static if (is(typeof(__traits(getMember, value, member)))
+        && __traits(compiles, { auto value = __traits(getMember, value, member); }))
     {
         alias attributes = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
         static if (keepXmlAttributes)
@@ -183,6 +185,17 @@ private template attrFilter(alias value, bool keepXmlAttributes, string member)
     {
         enum bool attrFilter = false;
     }
+}
+
+// test for https://issues.dlang.org/show_bug.cgi?id=22214
+unittest
+{
+    static struct S
+    {
+        struct T { }
+    }
+    S s;
+    static assert(attrFilter!(s, false, "T") == false);
 }
 
 private void encodeNodeImpl(string name, T, attributes...)(ref XMLWriter!(Appender!string) writer, const T value)
