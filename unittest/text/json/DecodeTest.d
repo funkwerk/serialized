@@ -538,3 +538,20 @@ unittest
     // when/then
     text.decode!(const(string[string])).should.equal(["key": "value"]);
 }
+
+@("associative array in immutable struct")
+unittest
+{
+    // given
+    const text = `{ "entry": { "key": "value" } }`;
+
+    immutable struct Value
+    {
+        string[string] entry;
+
+        mixin(GenerateAll);
+    }
+
+    // when/then
+    text.decode!Value.should.equal(Value(["key": "value"]));
+}

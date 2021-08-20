@@ -81,6 +81,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
     in (isJSONParserNodeInputRange!JsonStream)
     {
         import boilerplate.util : formatNamed, optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
+        import meta.SafeUnqual : SafeUnqual;
         import std.exception : enforce;
         import std.meta : AliasSeq, anySatisfy, ApplyLeft;
         import std.range : array, assocArray, ElementType, enumerate;
@@ -154,7 +155,9 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                     keys ~= key;
                     values ~= value;
                 });
-                return assocArray(keys, values);
+                // The is() implconv above may have cast away constness.
+                // But we can rely that nobody but our caller is mutating assocArray anyways.
+                return cast(T) assocArray(keys, values);
             }
             else static if (is(T : E[], E))
             {
@@ -207,7 +210,8 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                     {{
                         enum builderField = optionallyRemoveTrailingUnderline!constructorField;
 
-                        alias Type = Unqual!(__traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).Type);
+                        alias Type = SafeUnqual!(
+                            __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).Type);
                         alias attributes = AliasSeq!(
                             __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).attributes);
 
