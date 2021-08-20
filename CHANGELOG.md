@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2021-08-20
+### Fixed
+- Allow decoding a struct member that is an immutable hashmap.
+
+## [1.3.4] - 2021-08-16
+### Fixed
+- Work around DMD 2.097.0 regression https://issues.dlang.org/show_bug.cgi?id=22214 .
+
+## [1.3.3] - 2021-05-20
+### Fixed
+- Update dub boilerplate requirement. Commit dub.selections.json for reproducible unittests.
+
+## [1.3.2] - 2021-04-15
+### Fixed
+- Fix deprecations and breakage on DMD 2.097.0.
+
 ## [1.3.1] - 2021-02-15
 ### Fixed
 - Fix that decoding of nested object in array from JSONValue with alias this would drop every second value.
