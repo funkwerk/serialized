@@ -555,3 +555,29 @@ unittest
     // when/then
     text.decode!Value.should.equal(Value(["key": "value"]));
 }
+
+@("associative array aliased to this in immutable struct")
+unittest
+{
+    // given
+    const text = `{ "entry": { "key": "value" } }`;
+
+    immutable struct Entry
+    {
+        string[string] entry;
+
+        alias entry this;
+
+        mixin(GenerateAll);
+    }
+
+    immutable struct Container
+    {
+        Entry entry;
+
+        mixin(GenerateAll);
+    }
+
+    // when/then
+    text.decode!Container.should.equal(Container(Entry(["key": "value"])));
+}

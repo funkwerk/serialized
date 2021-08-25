@@ -139,7 +139,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
             {
                 return decodeValue!T(jsonStream, target);
             }
-            else static if (is(T: V[K], K, V))
+            else static if (is(T == V[K], K, V))
             {
                 static assert(is(string: K), "cannot decode associative array with non-string key from json");
 
@@ -283,7 +283,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                 static foreach (fieldIndex, const constructorField; T.ConstructorInfo.fields)
                 {{
                     enum builderField = optionallyRemoveTrailingUnderline!constructorField;
-                    alias Type = Unqual!(__traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).Type);
+                    alias Type = SafeUnqual!(__traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).Type);
 
                     static if (is(Type : Nullable!Arg, Arg))
                     {
