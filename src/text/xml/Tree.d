@@ -105,8 +105,9 @@ struct XmlNode
     {
         import std.traits : CopyConstness, Unqual;
 
-        static struct FindChildrenRange(T)
-        if (is(Unqual!T == XmlNode))
+        // Use mixin template to work around template symbol issue with
+        // `FindChildrenRange(T)` instantiating itself with `const(T)`.
+        template FindChildrenRangeImpl(T)
         {
             private T[] children;
 
@@ -140,7 +141,7 @@ struct XmlNode
 
             public @property auto save() const @nogc nothrow pure @safe
             {
-                return FindChildrenRange!(CopyConstness!(typeof(this), T))(children, tag);
+                return ConstFindChildrenRange(children, tag);
             }
 
             private void prime() @nogc nothrow pure @safe
@@ -152,7 +153,17 @@ struct XmlNode
             }
         }
 
-        return FindChildrenRange!XmlNode(this.children, tag);
+        static struct ConstFindChildrenRange
+        {
+            mixin FindChildrenRangeImpl!(const XmlNode);
+        }
+
+        static struct FindChildrenRange
+        {
+            mixin FindChildrenRangeImpl!XmlNode;
+        }
+
+        return FindChildrenRange(this.children, tag);
     }
 
     public Nullable!XmlNode findChild(string tag) @nogc pure @safe
