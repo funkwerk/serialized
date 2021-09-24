@@ -12,6 +12,7 @@ import std.traits;
 import std.typecons;
 import text.json.Json;
 import text.json.JsonValueRange;
+import text.json.ParserMarker;
 import text.time.Convert;
 
 /**
@@ -20,7 +21,7 @@ import text.time.Convert;
  */
 public T decode(T, alias transform = never)(string json)
 {
-    auto stream = parseJSONStream(json);
+    auto stream = parseJSONStream!(LexOptions.noTrackLocation)(json);
 
     scope(success)
     {
@@ -175,6 +176,12 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                     index++;
                 });
                 return result;
+            }
+            else static if (is(T == ParserMarker))
+            {
+                T marker = T(jsonStream);
+                jsonStream.skipValue;
+                return marker;
             }
             else // object
             {

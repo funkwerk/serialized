@@ -6,6 +6,7 @@ import std.datetime;
 import std.json;
 import text.json.Decode;
 import text.json.Json;
+import text.json.ParserMarker;
 
 static foreach (fromJsonValue; [false, true])
 {
@@ -554,6 +555,49 @@ unittest
 
     // when/then
     text.decode!Value.should.equal(Value(["key": "value"]));
+}
+
+@("parsing is resumed")
+unittest
+{
+    import std.typecons : Nullable, nullable;
+
+    static struct FirstPass
+    {
+        string str;
+
+        int i;
+
+        ParserMarker value;
+
+        mixin(GenerateThis);
+    }
+
+    static struct Value
+    {
+        string message;
+
+        int[] array;
+
+        mixin(GenerateThis);
+    }
+
+    // given
+    const text = `
+    {
+        "value": {
+            "message": "Hello World",
+            "array": [4, 5, 6]
+        },
+        "str": "String",
+        "i": 5
+    }
+    `;
+
+    const firstPass = decode!FirstPass(text);
+    const secondPass = firstPass.value.decode!Value;
+
+    secondPass.should.equal(Value("Hello World", [4, 5, 6]));
 }
 
 @("associative array aliased to this in immutable struct")

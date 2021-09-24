@@ -370,7 +370,8 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
                 }
             }
         }
-        else static if (isDynamicArray!InternalInput && is(Unqual!(ElementType!InternalInput) == ubyte))
+        // This is terminally broken.
+        /*else static if (isDynamicArray!InternalInput && is(Unqual!(ElementType!InternalInput) == ubyte))
         {
             () @trusted {
                 while (true) {
@@ -379,7 +380,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
                     _input.popFrontN(idx);
                 }
             } ();
-        }
+        }*/
         else
         {
             while (!_input.empty)
@@ -1848,7 +1849,6 @@ nothrow @nogc @safe {
     return unescapeStringLiteral!(false, true)(rep, nullSink, slice, {}, error, col);
 }
 
-
 package bool skipStringLiteral(bool track_location = true, Array)(
         ref Array input,
         ref Array destination,
@@ -2078,7 +2078,7 @@ private double exp10(int exp) pure @trusted @nogc
 
 
 // derived from libdparse
-private ulong skip(bool matching, chars...)(const(ubyte)* p) pure nothrow @safe @nogc
+private ulong skip(bool matching, chars...)(const(ubyte)* p) pure nothrow @trusted @nogc
     if (chars.length <= 8)
 {
     version (Windows) {
@@ -2096,7 +2096,7 @@ private ulong skip(bool matching, chars...)(const(ubyte)* p) pure nothrow @safe 
         else
             enum flags = 0b0000_0000;
 
-        asm pure @nogc nothrow
+        asm pure @nogc nothrow @trusted
         {
             naked;
             movdqu XMM1, [RDI];

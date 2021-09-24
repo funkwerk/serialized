@@ -58,6 +58,19 @@ struct JsonValueRange
         return this.currentValue;
     }
 
+    public JsonValueRange dup() const
+    {
+        JsonValueRange result;
+
+        result.empty = this.empty;
+        result.currentValue = this.currentValue;
+        result.iterators = this.iterators.dup;
+        result.current = current;
+        result.previous = previous;
+        result.level = level;
+        return result;
+    }
+
     public void popFront()
     in (!empty)
     {
@@ -107,7 +120,7 @@ struct JsonValueRange
         {
             import std.format : format;
 
-            assert(false, format!"unexpected value type: %s"(current.value.type));
+            assert(false, format!"unexpected value type: %s in %s"(current.value.type, this));
         }
     }
 

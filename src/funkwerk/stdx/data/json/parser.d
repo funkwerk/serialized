@@ -499,6 +499,21 @@ struct JSONParserRange(Input)
     }
 
     /**
+     * NOT a replacement for save()! Just here to convert from const to mutable!
+     */
+    JSONParserRange dup() const
+    {
+        auto result = JSONParserRange(this._input);
+
+        result._containerStack = this._containerStack.dup;
+        result._containerStackFill = this._containerStackFill;
+        result._currentKind = this._currentKind;
+        result._prevKind = this._prevKind;
+        result._node = this._node;
+        return result;
+    }
+
+    /**
      * Determines of the range has been exhausted.
      */
     @property bool empty() { return _containerStackFill == 0 && _input.empty && _node.kind == JSONParserNodeKind.none; }
