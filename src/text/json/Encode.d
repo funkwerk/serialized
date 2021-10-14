@@ -3,6 +3,7 @@ module text.json.Encode;
 import meta.attributesOrNothing;
 import meta.never;
 import meta.SafeUnqual;
+import std.datetime;
 import std.format;
 import std.json;
 import std.range;
@@ -233,17 +234,13 @@ if (!is(T: Nullable!Arg, Arg))
         // FIXME proper null token?
         output.put(JSONOutputToken(JSONValue(null)));
     }
-    else static if (__traits(compiles, value.toISOExtString(output)))
+    else static if (is(T : const SysTime))
     {
-        import std.datetime : SysTime;
+        // fastpath for SysTime (it's a very common type)
+        SysTime noFractionalSeconds = value;
 
-        static if (is(T == SysTime))
-        {
-            value.fracSecs = Duration.zero;
-        }
-
-        // SysTime, DateTime, TimeOfDay
-        value.toISOExtString(output);
+        noFractionalSeconds.fracSecs = 0.seconds;
+        output.put(JSONOutputToken(noFractionalSeconds));
     }
     else static if (__traits(compiles, Convert.toString(value)))
     {
@@ -323,6 +320,11 @@ private struct StringSink
                     this.output.escapeString(token.string_);
                     this.output.put("\"");
                     break;
+                case sysTime:
+                    this.output.put("\"");
+                    token.sysTime.toISOExtString(this.output);
+                    this.output.put("\"");
+                    break;
                 case json:
                     this.output.put(token.json.toJSON);
                     break;
@@ -381,6 +383,9 @@ private struct JSONValueSink
                     break;
                 case string_:
                     addValue(JSONValue(token.string_));
+                    break;
+                case sysTime:
+                    addValue(JSONValue(token.sysTime.toISOExtString));
                     break;
                 case json:
                     addValue(token.json);
@@ -485,6 +490,7 @@ struct JSONOutputToken
         long_,
         double_,
         string_,
+        sysTime,
         json,
     }
     Kind kind;
@@ -494,6 +500,7 @@ struct JSONOutputToken
         long long_;
         double double_;
         string string_;
+        SysTime sysTime;
         string key_;
         JSONValue json;
     }
@@ -527,7 +534,7 @@ struct JSONOutputToken
         return result;
     }
 
-    static foreach (member; ["bool_", "long_", "double_", "string_", "json"])
+    static foreach (member; ["bool_", "long_", "double_", "string_", "sysTime", "json"])
     {
         mixin(format!q{
             this(typeof(this.%s) value)
