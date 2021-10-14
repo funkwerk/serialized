@@ -7,215 +7,371 @@ import std.json;
 import text.json.Encode;
 import text.json.Json;
 
-@("aggregate types are encoded to JSON text")
-unittest
+// All the tests are executed with both `encodeJson` (encodes to a JSONValue)
+// and `encode` (encodes to a string).
+static foreach (bool useEncodeJson; [false, true])
 {
-    const expected = `
+    mixin encodeTests!(useEncodeJson);
+}
+
+template encodeTests(bool useEncodeJson)
+{
+    static if (useEncodeJson)
     {
-        "IntValueElement": 23,
-        "StringValueElement": "FOO",
-        "BoolValueElement": true,
-        "NestedElement": {
-            "Element": "Bar"
-        },
-        "ArrayElement": [1, 2, 3],
-        "AssocArrayElement": {
-            "baz": { "Element": "whee" },
-            "foo": { "Element": "bar" }
-        },
-        "NestedArray": [
-            { "Element": "Foo" },
-            { "Element": "Bar" }
-        ],
-        "DateElement": "2000-01-02",
-        "SysTimeElement": "2000-01-02T10:00:00Z"
-    }
-    `;
+        enum prefix = "encodeJson:";
 
-    // given
-    const value = (){
-        import text.time.Convert : Convert;
-
-        with (Value.Builder())
+        template testEncode(Args...)
         {
-            intValue = 23;
-            stringValue = "FOO";
-            boolValue = true;
-            nestedValue = NestedValue("Bar");
-            arrayValue = [1, 2, 3];
-            assocArray = ["foo": NestedValue("bar"), "baz": NestedValue("whee")];
-            nestedArray = [NestedValue("Foo"), NestedValue("Bar")];
-            dateValue = Date(2000, 1, 2);
-            sysTimeValue = SysTime.fromISOExtString("2000-01-02T10:00:00Z");
-            return value;
+            JSONValue testEncode(T)(const T value)
+            {
+                return value.encodeJson!(Args);
+            }
         }
-    }();
-
-    // when
-    const actualJson = encode(value).parseJSON;
-
-    // then
-    const expectedJson = expected.parseJSON;
-
-    actualJson.should.equal(expectedJson);
-}
-
-@("custom encoders are used on fields")
-unittest
-{
-    // given
-    const value = ValueWithEncoders("bla", "bla");
-
-    // when
-    auto text = encode(value);
-
-    // then
-    const expected = `{ "asFoo": "foo", "asBar": "bar" }`;
-
-    text.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("custom encoders are used on a type")
-unittest
-{
-    // given
-    struct Value
+    }
+    else
     {
-        TypeWithEncoder field;
+        enum prefix = "encode:";
 
-        mixin(GenerateAll);
+        template testEncode(Args...)
+        {
+            JSONValue testEncode(T)(const T value)
+            {
+                return value.encode!(Args).parseJSON;
+            }
+        }
     }
 
-    const value = Value(TypeWithEncoder());
-
-    // when
-    auto text = encode(value);
-
-    // then
-    const expected = `{ "field": "123" }`;
-
-    text.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("enums are encoded as strings")
-unittest
-{
-    enum Enum
+    @(prefix ~ "aggregate types are encoded to JSON text")
+    unittest
     {
-        A
+        // given
+        const value = (){
+            import text.time.Convert : Convert;
+
+            with (Value.Builder())
+            {
+                intValue = 23;
+                stringValue = "FOO";
+                boolValue = true;
+                nestedValue = NestedValue("Bar");
+                arrayValue = [1, 2, 3];
+                assocArray = ["foo": NestedValue("bar"), "baz": NestedValue("whee")];
+                nestedArray = [NestedValue("Foo"), NestedValue("Bar")];
+                dateValue = Date(2000, 1, 2);
+                sysTimeValue = SysTime.fromISOExtString("2000-01-02T10:00:00Z");
+                return value;
+            }
+        }();
+
+        // when
+        const actual = testEncode(value);
+
+        const expected = `
+        {
+            "IntValueElement": 23,
+            "StringValueElement": "FOO",
+            "BoolValueElement": true,
+            "NestedElement": {
+                "Element": "Bar"
+            },
+            "ArrayElement": [1, 2, 3],
+            "AssocArrayElement": {
+                "baz": { "Element": "whee" },
+                "foo": { "Element": "bar" }
+            },
+            "NestedArray": [
+                { "Element": "Foo" },
+                { "Element": "Bar" }
+            ],
+            "DateElement": "2000-01-02",
+            "SysTimeElement": "2000-01-02T10:00:00Z"
+        }
+        `.parseJSON;
+
+        // then
+        actual.should.equal(expected);
     }
 
-    struct Value
+    @(prefix ~ "custom encoders are used on fields")
+    unittest
     {
-        Enum field;
+        // given
+        const value = ValueWithEncoders("bla", "bla");
 
-        mixin(GenerateAll);
+        // when
+        auto actual = testEncode(value);
+
+        // then
+        const expected = `{ "asFoo": "foo", "asBar": "bar" }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    // given
-    const value = Value(Enum.A);
-
-    // when
-    const text = encode(value);
-
-    // then
-    const expected = `{ "field": "A" }`;
-
-    text.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("alias-this is encoded inline")
-unittest
-{
-    struct A
+    @(prefix ~ "custom encoders are used on a type")
+    unittest
     {
-        int value2;
+        // given
+        struct Value
+        {
+            TypeWithEncoder field;
 
-        mixin(GenerateAll);
+            mixin(GenerateAll);
+        }
+
+        const value = Value(TypeWithEncoder());
+
+        // when
+        auto actual = testEncode(value);
+
+        // then
+        const expected = `{ "field": "123" }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    struct B
+    @(prefix ~ "enums are encoded as strings")
+    unittest
     {
-        int value1;
+        enum Enum
+        {
+            A
+        }
 
-        A a;
+        struct Value
+        {
+            Enum field;
 
-        alias a this;
+            mixin(GenerateAll);
+        }
 
-        mixin(GenerateAll);
+        // given
+        const value = Value(Enum.A);
+
+        // when
+        const actual = testEncode(value);
+
+        // then
+        const expected = `{ "field": "A" }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    // given
-    const value = B(3, A(5));
-
-    // when
-    const actual = encode(value);
-
-    // then
-    const expected = `{ "value1": 3, "value2": 5 }`;
-
-    actual.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("alias-this is encoded inline for aliased methods")
-unittest
-{
-    struct A
+    @(prefix ~ "alias-this is encoded inline")
+    unittest
     {
-        int value2;
+        struct A
+        {
+            int value2;
 
-        mixin(GenerateAll);
+            mixin(GenerateAll);
+        }
+
+        struct B
+        {
+            int value1;
+
+            A a;
+
+            alias a this;
+
+            mixin(GenerateAll);
+        }
+
+        // given
+        const value = B(3, A(5));
+
+        // when
+        const actual = testEncode(value);
+
+        // then
+        const expected = `{ "value1": 3, "value2": 5 }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    struct B
+    @(prefix ~ "alias-this is encoded inline for aliased methods")
+    unittest
     {
-        int value1;
+        struct A
+        {
+            int value2;
 
-        @ConstRead
-        A a_;
+            mixin(GenerateAll);
+        }
 
-        mixin(GenerateAll);
+        struct B
+        {
+            int value1;
 
-        alias a this;
+            @ConstRead
+            A a_;
+
+            mixin(GenerateAll);
+
+            alias a this;
+        }
+
+        // given
+        const value = B(3, A(5));
+
+        // when
+        const actual = testEncode(value);
+
+        // then
+        const expected = `{ "value1": 3, "value2": 5 }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    // given
-    const value = B(3, A(5));
-
-    // when
-    const actual = encode(value);
-
-    // then
-    const expected = `{ "value1": 3, "value2": 5 }`;
-
-    actual.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("arrays of enums are encoded as strings")
-unittest
-{
-    enum Enum
+    @(prefix ~ "arrays of enums are encoded as strings")
+    unittest
     {
-        A,
+        enum Enum
+        {
+            A,
+        }
+
+        struct Value
+        {
+            Enum[] value;
+
+            mixin(GenerateAll);
+        }
+
+        // given
+        const value = Value([Enum.A]);
+
+        // when
+        auto actual = testEncode(value);
+
+        // then
+        const expected = `{ "value": ["A"] }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    struct Value
+    @(prefix ~ "transform functions may modify the values that are encoded")
+    unittest
     {
-        Enum[] value;
+        import std.conv : to;
 
-        mixin(GenerateAll);
+        struct Inner
+        {
+            int value;
+
+            mixin(GenerateThis);
+        }
+
+        struct InnerDto
+        {
+            string encodedValue;
+
+            mixin(GenerateThis);
+        }
+
+        struct Struct
+        {
+            Inner inner;
+
+            mixin(GenerateThis);
+        }
+
+        InnerDto transform(Inner inner)
+        {
+            return InnerDto(inner.value.to!string);
+        }
+
+        // given
+        const value = Struct(Inner(5));
+
+        // when
+        const actual = testEncode!(Struct, transform)(value);
+
+        // then
+        const expected = `{ "inner": { "encodedValue": "5" } }`.parseJSON;
+
+        actual.should.equal(expected);
     }
 
-    // given
-    const value = Value([Enum.A]);
+    @(prefix ~ "transform functions returning JSONValue")
+    unittest
+    {
+        import std.conv : to;
 
-    // when
-    auto text = encode(value);
+        struct Inner
+        {
+            int value;
 
-    // then
-    const expected = `{ "value": ["A"] }`;
+            mixin(GenerateThis);
+        }
 
-    text.parseJSON.should.equal(expected.parseJSON);
+        struct Struct
+        {
+            Inner inner;
+
+            mixin(GenerateThis);
+        }
+
+        JSONValue transform(Inner inner)
+        {
+            return JSONValue(inner.value.to!string);
+        }
+
+        // given
+        const value = Struct(Inner(5));
+
+        // when
+        const actual = testEncode!(Struct, transform)(value);
+
+        // then
+        const expected = `{ "inner": "5" }`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
+    @(prefix ~ "struct with version_ field")
+    unittest
+    {
+        // given
+        struct Value
+        {
+            int version_;
+
+            mixin(GenerateAll);
+        }
+
+        const value = Value(1);
+
+        // when
+        auto actual = testEncode(value);
+
+        // then
+        const expected = `{ "version": 1 }`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
+    @(prefix ~ "encode class")
+    unittest
+    {
+        // given
+        class Value
+        {
+            int field;
+
+            mixin(GenerateAll);
+        }
+
+        const value = new Value(1);
+
+        // when
+        auto actual = testEncode(value);
+
+        // then
+        const expected = `{ "field": 1 }`.parseJSON;
+
+        actual.should.equal(expected);
+    }
 }
 
 struct NestedValue
@@ -293,127 +449,4 @@ struct TypeWithEncoder
 JSONValue encodeTypeWithEncoder(TypeWithEncoder)
 {
     return JSONValue("123");
-}
-
-@("transform functions may modify the values that are encoded")
-unittest
-{
-    import std.conv : to;
-
-    struct Inner
-    {
-        int value;
-
-        mixin(GenerateThis);
-    }
-
-    struct InnerDto
-    {
-        string encodedValue;
-
-        mixin(GenerateThis);
-    }
-
-    struct Struct
-    {
-        Inner inner;
-
-        mixin(GenerateThis);
-    }
-
-    InnerDto transform(Inner inner)
-    {
-        return InnerDto(inner.value.to!string);
-    }
-
-    // given
-    const value = Struct(Inner(5));
-
-    // when
-    const actual = encode!(Struct, transform)(value);
-
-    // then
-    const expected = `{ "inner": { "encodedValue": "5" } }`;
-
-    actual.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("transform functions returning JSONValue")
-unittest
-{
-    import std.conv : to;
-
-    struct Inner
-    {
-        int value;
-
-        mixin(GenerateThis);
-    }
-
-    struct Struct
-    {
-        Inner inner;
-
-        mixin(GenerateThis);
-    }
-
-    JSONValue transform(Inner inner)
-    {
-        return JSONValue(inner.value.to!string);
-    }
-
-    // given
-    const value = Struct(Inner(5));
-
-    // when
-    const actual = encode!(Struct, transform)(value);
-
-    // then
-    const expected = `{ "inner": "5" }`;
-
-    actual.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("struct with version_ field")
-unittest
-{
-    // given
-    struct Value
-    {
-        int version_;
-
-        mixin(GenerateAll);
-    }
-
-    const value = Value(1);
-
-    // when
-    auto text = encode(value);
-
-    // then
-    const expected = `{ "version": 1 }`;
-
-    text.parseJSON.should.equal(expected.parseJSON);
-}
-
-@("encode class")
-unittest
-{
-    // given
-    class Value
-    {
-        int field;
-
-        mixin(GenerateAll);
-    }
-
-    const value = new Value(1);
-
-    // when
-    auto text = encode(value);
-
-    // then
-    const expected = `{ "field": 1 }`;
-
-    text.parseJSON.should.equal(expected.parseJSON);
 }
