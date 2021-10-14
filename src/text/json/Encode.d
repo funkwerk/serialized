@@ -233,6 +233,18 @@ if (!is(T: Nullable!Arg, Arg))
         // FIXME proper null token?
         output.put(JSONOutputToken(JSONValue(null)));
     }
+    else static if (__traits(compiles, value.toISOExtString(output)))
+    {
+        import std.datetime : SysTime;
+
+        static if (is(T == SysTime))
+        {
+            value.fracSecs = Duration.zero;
+        }
+
+        // SysTime, DateTime, TimeOfDay
+        value.toISOExtString(output);
+    }
     else static if (__traits(compiles, Convert.toString(value)))
     {
         output.put(JSONOutputToken(Convert.toString(value)));
@@ -260,6 +272,8 @@ private struct StringSink
 
     public void put(JSONOutputToken token)
     {
+        import funkwerk.stdx.data.json.generator : escapeString;
+
         with (JSONOutputToken.Kind)
         {
             if (token.kind != arrayEnd && token.kind != objectEnd)
@@ -289,8 +303,9 @@ private struct StringSink
                     this.comma.pop;
                     break;
                 case key:
-                    // Force formattedWrite to quote the string by putting it in a compound (range of one)
-                    this.output.formattedWrite("%(%s%):", only(token.key));
+                    this.output.put("\"");
+                    this.output.escapeString(token.key);
+                    this.output.put("\":");
                     // Suppress the next element's comma.
                     this.comma.head = false;
                     break;
@@ -304,7 +319,9 @@ private struct StringSink
                     this.output.formattedWrite("%s", token.double_);
                     break;
                 case string_:
-                    this.output.formattedWrite("%(%s%)", only(token.string_));
+                    this.output.put("\"");
+                    this.output.escapeString(token.string_);
+                    this.output.put("\"");
                     break;
                 case json:
                     this.output.put(token.json.toJSON);

@@ -510,7 +510,7 @@ private void writeNumber(R)(ref R dst, BigInt num) @trusted
     test!(GeneratorOptions.specialFloatLiterals)(-double.infinity, "-Infinity");
 }
 
-private void escapeString(bool use_surrogates = false, R)(ref R dst, string s)
+public void escapeString(bool use_surrogates = false, R)(ref R dst, string s)
 {
     import std.format;
     import std.utf : decode;
