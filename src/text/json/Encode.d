@@ -194,10 +194,24 @@ private void encodeStruct(Type, alias transform, Range, attributes...)(ref Range
     }}
 }
 
-public void encodeJsonStream(T : JSONValue, alias transform, Range, attributes...)(
-    ref Range output, const T parameter)
+private void encodeJsonStream(T : JSONValue, alias transform, Range, attributes...)(
+    ref Range output, const T value)
 {
-    output.put(JSONOutputToken(parameter));
+    output.put(JSONOutputToken(value));
+}
+
+static if (__traits(compiles, { import std.sumtype; }))
+{
+    import std.sumtype : match, SumType;
+
+    private void encodeJsonStream(T : SumType!Types, alias transform, Range, Types...)(
+        ref Range output, const T value)
+    {
+        value.match!(
+            staticMap!(
+                a => encodeJsonStream!(typeof(a), transform, Range)(output, a),
+                Types));
+    }
 }
 
 private void encodeValue(T, Range)(ref Range output, T value)

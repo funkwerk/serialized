@@ -372,6 +372,28 @@ template encodeTests(bool useEncodeJson)
 
         actual.should.equal(expected);
     }
+
+    static if (__traits(compiles, { import std.sumtype; }))
+    {
+        @(prefix ~ "encode std.sumtype")
+        unittest
+        {
+            import std.sumtype : SumType;
+
+            // given
+            alias S = SumType!(int, string);
+
+            const value = [S(1), S("foo")];
+
+            // when
+            auto actual = testEncode(value);
+
+            // then
+            const expected = `[1, "foo"]`.parseJSON;
+
+            actual.should.equal(expected);
+        }
+    }
 }
 
 struct NestedValue
