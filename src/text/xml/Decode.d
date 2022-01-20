@@ -95,6 +95,10 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
             {
                 __traits(getMember, builder, builderField) = decodeSumType!T(node);
             }
+            else static if (is(Type : SumType!T[], T...))
+            {
+                __traits(getMember, builder, builderField) = decodeSumTypeArray!T(node);
+            }
             else static if (!Xml.attributeName!attributes(builderField).isNull)
             {
                 enum name = Xml.attributeName!attributes(builderField).get;
@@ -260,6 +264,34 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
     enforce!XmlException(matchedValues == 1,
         format!`Element "%s": contained more than one of %(%s, %)`(node.tag, [staticMap!(typeName, Types)]));
     return decodedValues[].find!(a => !a.isNull).front.get;
+}
+
+private SumType!Types[] decodeSumTypeArray(Types...)(XmlNode node)
+{
+    import std.meta : AliasSeq;
+
+    SumType!Types[] result;
+
+    foreach (child; node.children)
+    {
+        static foreach (Type; Types)
+        {{
+            alias attributes = AliasSeq!(__traits(getAttributes, Type));
+
+            static assert(
+                !Xml.elementName!attributes(typeName!Type).isNull,
+                fullyQualifiedName!Type ~
+                ": SumType component type must have an Xml.Element attribute indicating its element name.");
+
+            enum name = Xml.elementName!attributes(typeName!Type).get;
+
+            if (child.tag == name)
+            {
+                result ~= SumType!Types(child.decodeUnchecked!Type);
+            }
+        }}
+    }
+    return result;
 }
 
 private enum typeName(T) = typeof(cast() T.init).stringof;

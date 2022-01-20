@@ -313,7 +313,7 @@ unittest
     }
 }
 
-@("SumType with arrays")
+@("SumType of arrays")
 unittest
 {
     import text.xml.XmlException : XmlException;
@@ -356,6 +356,33 @@ unittest
 
         decode!Value(`<Value><A a="5"/><B b="3"/></Value>`).should.throwAn!XmlException
             (`Element "Value": contained more than one of "A[]", "B[]"`);
+    }
+}
+
+@("array of SumTypes")
+unittest
+{
+    import text.xml.XmlException : XmlException;
+
+    with (SumTypeFixture)
+    {
+        alias Either = SumType!(A, B);
+
+        @(Xml.Element("Value"))
+        struct Value
+        {
+            // any number of either A or B
+            Either[] entries;
+
+            mixin(GenerateThis);
+        }
+
+        // given/when/then
+        decode!Value(`<Value><A a="5"/></Value>`).should.equal(Value([Either(A(5))]));
+
+        decode!Value(`<Value><B b="5"/><A a="6"/></Value>`).should.equal(Value([Either(B(5)), Either(A(6))]));
+
+        decode!Value(`<Value/>`).should.equal(Value([]));
     }
 }
 
