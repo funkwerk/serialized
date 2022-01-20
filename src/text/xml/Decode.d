@@ -269,6 +269,7 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
 private SumType!Types[] decodeSumTypeArray(Types...)(XmlNode node)
 {
     import std.meta : AliasSeq;
+    import std.traits : fullyQualifiedName;
 
     SumType!Types[] result;
 
