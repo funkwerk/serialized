@@ -60,7 +60,10 @@ public template decodeJson(T, alias transform, Flag!"logErrors" logErrors, attri
 {
     T decodeJson(JsonStream)(ref JsonStream jsonStream, lazy string target)
     {
-        static if (__traits(compiles, decodeJsonInternal!(T, transform, No.logErrors, attributes)(jsonStream, target)))
+        // Don't attempt to speculatively instantiate decoder if logErrors is off anyways.
+        // Avoids combinatorial explosion on deep errors.
+        static if (logErrors == No.logErrors
+            || __traits(compiles, decodeJsonInternal!(T, transform, No.logErrors, attributes)(jsonStream, target)))
         {
             return decodeJsonInternal!(T, transform, No.logErrors, attributes)(jsonStream, target);
         }
