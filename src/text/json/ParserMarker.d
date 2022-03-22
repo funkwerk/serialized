@@ -24,9 +24,11 @@ struct ParserMarker
 
     invariant (this.stringStream.isNull != this.jsonStream.isNull);
 
-    public this(StringStream stringStream)
+    public this(this This)(const StringStream stringStream)
     {
-        this.stringStream = stringStream.nullable;
+        // It's impossible to construct an immutable(Nullable) directly. (?)
+        // However, JSONParserRange is @immutable.
+        this.stringStream = cast(typeof(this.stringStream)) stringStream.nullable;
     }
 
     public this(JsonStream jsonStream)

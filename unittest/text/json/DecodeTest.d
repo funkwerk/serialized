@@ -562,7 +562,7 @@ unittest
 {
     import std.typecons : Nullable, nullable;
 
-    static struct FirstPass
+    static immutable struct FirstPass
     {
         string str;
 

@@ -180,7 +180,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                 });
                 return result;
             }
-            else static if (is(T == ParserMarker))
+            else static if (is(Unqual!T == ParserMarker))
             {
                 T marker = T(jsonStream);
                 jsonStream.skipValue;
