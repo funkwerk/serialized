@@ -94,7 +94,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
         {
             return decodeJSONValue(jsonStream);
         }
-        else static if (__traits(compiles, transform!T) && isCallable!(transform!T))
+        else static if (__traits(compiles, isCallable!(transform!T)) && isCallable!(transform!T))
         {
             static assert(Parameters!(transform!T).length == 1, "`transform` must take one parameter.");
 
