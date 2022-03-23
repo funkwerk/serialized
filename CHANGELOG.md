@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.6] - 2022-03-23
+### Fixed
+- `text.json.Decode`: Only check for object null once we actually try to directly recurse into it.
+  Allows null objects to be encoded with an encode function.
+
+## [1.4.5] - 2022-03-23
+### Fixed
+- Fix: check that isCallable can be instantiated before trying to instantiate it.
+  Clarifies a compile error in JSON decoders.
+
+## [1.4.4] - 2022-03-22
+### Fixed
+- Allow decoding immutable `ParserMarker`.
+
+## [1.4.3] - 2022-02-02
+### Fixed
+- Avoid combinatorial explosion if decoder fails to instantiate in deep recursion.
+
+## [1.4.2] - 2022-01-20
+### Fixed
+- XML: Decode arrays of SumTypes.
+
+## [1.4.1] - 2021-10-14
+### Fixed
+- text.json.Encode: create fast path for `SysTime`. (This type is very common.)
+
+## [1.4.0] - 2021-09-24
+### Added
+- Add `text.json.ParserMarker`, a type that can be thrown into a decoded struct to match any JSON value.
+  As opposed to `JSONValue`, `ParserMarker` just skips the region in the input stream without parsing. Later
+  on, you can call `marker.decode!(T, handler)` to resume parsing inside the marker.
+  Note that while faster than parsing, skipping in the input stream is not free! The JSON will still need to be
+  lexed. Only use `ParserMarker` if there is no way to know the full type of the message at the time.
+
 ## [1.3.8] - 2022-02-22
 ### Fixed
 - Avoid combinatorial explosion if decoder fails to instantiate in deep recursion.

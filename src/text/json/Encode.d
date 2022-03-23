@@ -36,14 +36,6 @@ public JSONValue encodeJson(T, alias transform)(const T value)
 
 // range is an output range over `JSONOutputToken`s.
 private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Range output, const T parameter)
-in
-{
-    static if (is(T == class))
-    {
-        assert(parameter !is null);
-    }
-}
-do
 {
     import boilerplate.util : udaIndex;
     import std.traits : isIterable, Unqual;
@@ -127,6 +119,14 @@ do
 }
 
 private void encodeStruct(Type, alias transform, Range, attributes...)(ref Range output, const Type value)
+in
+{
+    static if (is(T == class))
+    {
+        assert(parameter !is null);
+    }
+}
+do
 {
     import boilerplate.util : formatNamed, optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
     import std.meta : AliasSeq, anySatisfy, ApplyLeft;

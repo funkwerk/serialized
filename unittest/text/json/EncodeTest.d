@@ -373,6 +373,32 @@ template encodeTests(bool useEncodeJson)
         actual.should.equal(expected);
     }
 
+    @(prefix ~ "encode null object with transform")
+    unittest
+    {
+        import std.conv : to;
+
+        JSONValue transform(const Object obj)
+        {
+            if (obj is null)
+            {
+                return JSONValue(null);
+            }
+            assert(false);
+        }
+
+        // given
+        const Object value = null;
+
+        // when
+        const actual = testEncode!(Object, transform)(value);
+
+        // then
+        enum expected = `null`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
     static if (__traits(compiles, { import std.sumtype; }))
     {
         @(prefix ~ "encode std.sumtype")
