@@ -201,6 +201,17 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                         fullyQualifiedName!T ~ " cannot be decoded!");
                 }
 
+                static if (is(T == class))
+                {
+                    // TODO only do this if we're not @NonNull
+                    if (jsonStream.front.kind == JSONParserNodeKind.literal
+                        && jsonStream.front.literal.kind == JSONTokenKind.null_)
+                    {
+                        jsonStream.popFront;
+                        return null;
+                    }
+                }
+
                 auto builder = T.Builder();
                 // see doc/why-we-dont-need-save.md
                 auto streamCopy = jsonStream;

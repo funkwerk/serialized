@@ -373,6 +373,24 @@ template encodeTests(bool useEncodeJson)
         actual.should.equal(expected);
     }
 
+    @(prefix ~ "encode null object")
+    unittest
+    {
+        // given
+        class Value
+        {
+            mixin(GenerateAll);
+        }
+
+        // when
+        const actual = testEncode!Value(null);
+
+        // then
+        enum expected = `null`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
     @(prefix ~ "encode null object with transform")
     unittest
     {

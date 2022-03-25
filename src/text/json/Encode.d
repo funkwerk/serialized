@@ -111,6 +111,15 @@ private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Rang
         }
         else
         {
+            static if (is(Type == class))
+            {
+                if (value is null)
+                {
+                    output.put(JSONOutputToken(JSONValue(null)));
+                    return;
+                }
+            }
+
             output.put(JSONOutputToken.objectStart);
             encodeStruct!(T, transform, Range, attributes)(output, value);
             output.put(JSONOutputToken.objectEnd);

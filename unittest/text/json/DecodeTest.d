@@ -513,6 +513,21 @@ unittest
     decode!S(text).should.throwA!JSONException;
 }
 
+@("decode null object")
+unittest
+{
+    // given
+    const text = `null`;
+
+    static class Value
+    {
+        mixin(GenerateAll);
+    }
+
+    // when/then
+    decode!Value(text).should.be(null);
+}
+
 @("struct with version_ field")
 unittest
 {
