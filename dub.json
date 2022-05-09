@@ -12,9 +12,7 @@
 		"boilerplate": ">=1.7.4",
 		"dshould": ">=1.2.1",
 		"dxml": ">=0.4.1",
-		"unit-threaded": "*",
-		"prettyprint": ">=1.0.5",
-		"sumtype": ">=0.9.4",
+		"prettyprint": ">=1.0.5"
 	},
 
 	"configurations": [
@@ -29,7 +27,10 @@
 			"preBuildCommands": ["$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f build/ut.d"],
 			"mainSourceFile": "build/ut.d",
 			"sourcePaths": ["src", "unittest"],
-			"importPaths": ["src", "unittest"]
+			"importPaths": ["src", "unittest"],
+			"dependencies": {
+				"unit-threaded": "<2.0.0"
+			}
 		}
 	]
 }

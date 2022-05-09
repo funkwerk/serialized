@@ -6,7 +6,7 @@ import meta.attributesOrNothing;
 import meta.never;
 import meta.SafeUnqual;
 import std.format : format;
-import sumtype;
+import std.sumtype;
 import text.xml.Tree;
 import text.xml.Validation : enforceName, normalize, require, requireChild;
 public import text.xml.Xml;

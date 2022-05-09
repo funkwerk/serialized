@@ -6,9 +6,9 @@ import dxml.writer;
 import meta.attributesOrNothing;
 import std.array;
 import std.meta;
+import std.sumtype : match, SumType;
 import std.traits;
 import std.typecons;
-import sumtype : match, SumType;
 import text.xml.Convert;
 import text.xml.Xml;
 

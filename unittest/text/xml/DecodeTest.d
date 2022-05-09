@@ -3,7 +3,7 @@ module text.xml.DecodeTest;
 import boilerplate;
 import dshould;
 import std.datetime;
-import sumtype : match, SumType;
+import std.sumtype : match, SumType;
 import text.xml.Decode;
 import text.xml.Tree;
 import text.xml.Xml;
