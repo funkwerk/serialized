@@ -325,10 +325,13 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
 
                         static if (memberIsAliasedToThis)
                         {
+                            // don't consume streamCopy; we may need it for an error later.
+                            auto aliasStream = streamCopy;
+
                             // alias this: decode from the same json value as the whole object
                             __traits(getMember, builder, builderField)
                                 = .decodeJson!(Type, transform, logErrors, attributes)(
-                                    streamCopy, fullyQualifiedName!T ~ "." ~ constructorField);
+                                    aliasStream, fullyQualifiedName!T ~ "." ~ constructorField);
                         }
                         else static if (!useDefault)
                         {
