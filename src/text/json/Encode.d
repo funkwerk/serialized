@@ -109,6 +109,15 @@ private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Rang
             }
             output.put(JSONOutputToken.arrayEnd);
         }
+        else static if (__traits(compiles, { import std.sumtype : SumType; static assert(isInstanceOf!(SumType, T)); }))
+        {
+            import std.sumtype : match, SumType;
+
+            value.match!(
+                staticMap!(
+                    a => encodeJsonStream!(typeof(a), transform, Range, attributes)(output, a),
+                    TemplateArgsOf!T));
+        }
         else
         {
             static if (is(Type == class))
@@ -208,20 +217,6 @@ private void encodeJsonStream(T : JSONValue, alias transform, Range, attributes.
     ref Range output, const T value)
 {
     output.put(JSONOutputToken(value));
-}
-
-static if (__traits(compiles, { import std.sumtype; }))
-{
-    import std.sumtype : match, SumType;
-
-    private void encodeJsonStream(T : SumType!Types, alias transform, Range, Types...)(
-        ref Range output, const T value)
-    {
-        value.match!(
-            staticMap!(
-                a => encodeJsonStream!(typeof(a), transform, Range)(output, a),
-                Types));
-    }
 }
 
 private void encodeValue(T, Range)(ref Range output, T value)

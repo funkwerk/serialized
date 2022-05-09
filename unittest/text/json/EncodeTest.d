@@ -437,6 +437,30 @@ template encodeTests(bool useEncodeJson)
 
             actual.should.equal(expected);
         }
+
+        @(prefix ~ "encode std.sumtype with transform function")
+        unittest
+        {
+            import std.sumtype : match, SumType;
+
+            // given
+            alias S = SumType!(int, string);
+
+            string transform(const S s)
+            {
+                return s.match!((int i) => "int", (string s) => "string");
+            }
+
+            const value = [S(1), S("foo")];
+
+            // when
+            auto actual = testEncode!(S[], transform)(value);
+
+            // then
+            enum expected = `["int", "string"]`.parseJSON;
+
+            actual.should.equal(expected);
+        }
     }
 }
 
