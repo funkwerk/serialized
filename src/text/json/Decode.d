@@ -36,7 +36,7 @@ public T decode(T, alias transform = never)(JSONValue value)
 {
     auto jsonStream = JsonValueRange(value);
 
-    return decodeJson!(T, transform, Yes.logErrors)(jsonStream);
+    return decodeJson!(T, transform, Yes.logErrors)(jsonStream, T.stringof);
 }
 
 /// ditto
