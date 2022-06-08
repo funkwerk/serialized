@@ -21,16 +21,14 @@
 		},
 		{
 			"name": "unittest",
+			"dflags": ["-dip1000"],
 			"targetType": "executable",
 			"targetName": "TestRunner",
 			"targetPath": "build",
 			"preBuildCommands": ["$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f build/ut.d"],
 			"mainSourceFile": "build/ut.d",
 			"sourcePaths": ["src", "unittest"],
-			"importPaths": ["src", "unittest"],
-			"dependencies": {
-				"unit-threaded": "<2.0.0"
-			}
+			"importPaths": ["src", "unittest"]
 		}
 	]
 }

@@ -56,7 +56,7 @@ struct RecursiveDescentParser
 
     public bool matchZeroOrMore(scope bool delegate() @nogc @safe action) @nogc
     {
-        action.generate.find(false);
+        while (action() == true) { }
 
         return true;
     }
@@ -70,7 +70,16 @@ struct RecursiveDescentParser
 
     public bool matchTimes(int num, scope bool delegate() @nogc @safe action) @nogc
     {
-        return matchGroup(() => action.generate.takeExactly(num).all);
+        return matchGroup({
+            foreach (_; 0 .. num)
+            {
+                if (action() == false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        });
     }
 
     public bool acceptAsciiChar(scope bool delegate(char) @nogc @safe predicate) @nogc

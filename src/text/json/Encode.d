@@ -404,7 +404,7 @@ private struct JSONValueSink
         return head.value.array[0];
     }
 
-    private ref KeyValuePair head()
+    private ref KeyValuePair head() return
     {
         return this.stack.head;
     }

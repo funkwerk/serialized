@@ -200,8 +200,8 @@ unittest
 
     auto arrval = JSONValue([floatval, doubleval]);
     assert(arrval.hasType!(JSONValue[])());
-    assert(arrval == [floatval, doubleval]);
-    assert(arrval == [32.0, 63.5]);
+    assert(arrval == [floatval, doubleval].dup);
+    assert(arrval == [32.0, 63.5].dup);
     assert(arrval[0] == floatval);
     assert(arrval[0] == 32.0);
     assert(arrval[1] == doubleval);

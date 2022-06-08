@@ -26,7 +26,7 @@ public struct JSONObject
     {
         if (name !in this.attributes)
         {
-            throw new JSONException(format!`"%s" value required`(name));
+            throw new JSONException(trustedFormat!`"%s" value required`(name));
         }
         return this.attributes[name];
     }
@@ -45,7 +45,7 @@ public struct JSONObject
         }
         catch (JSONException exception)
         {
-            throw new JSONException(format!`"%s" value: %s`(name, exception.msg));
+            throw new JSONException(trustedFormat!`"%s" value: %s`(name, exception.msg));
         }
     }
 
@@ -64,7 +64,7 @@ public struct JSONObject
         }
         catch (JSONException exception)
         {
-            throw new JSONException(format!`"%s" value: %s`(name, exception.msg));
+            throw new JSONException(trustedFormat!`"%s" value: %s`(name, exception.msg));
         }
     }
 
@@ -83,7 +83,7 @@ public struct JSONObject
         }
         catch (JSONException exception)
         {
-            throw new JSONException(format!`"%s" value: %s`(name, exception.msg));
+            throw new JSONException(trustedFormat!`"%s" value: %s`(name, exception.msg));
         }
     }
 }
@@ -95,7 +95,7 @@ public JSONObject requireObject(JSONValue value)
 {
     if (value.type != JSONType.object)
     {
-        throw new JSONException(format!"object required but got %s"(value));
+        throw new JSONException(trustedFormat!"object required but got %s"(value));
     }
     return JSONObject(value.object);
 }
@@ -122,7 +122,7 @@ public JSONValue[] requireArray(JSONValue value)
 {
     if (value.type != JSONType.array)
     {
-        throw new JSONException(format!"array required but got %s"(value));
+        throw new JSONException(trustedFormat!"array required but got %s"(value));
     }
     return value.array;
 }
@@ -149,7 +149,7 @@ public T require(T)(JSONValue value)
 {
     if (value.type != JSONType.true_ && value.type != JSONType.false_)
     {
-        throw new JSONException(format!"boolean required but got %s"(value));
+        throw new JSONException(trustedFormat!"boolean required but got %s"(value));
     }
     return value.type == JSONType.true_;
 }
@@ -169,12 +169,12 @@ public T require(T)(JSONValue value)
             case JSONType.uinteger:
                 return value.uinteger.to!T;
             default:
-                throw new JSONException(format!"integral value required but got %s"(value));
+                throw new JSONException(trustedFormat!"integral value required but got %s"(value));
         }
     }
     catch (ConvException)
     {
-        throw new JSONException(format!"%s is not a valid value of type %s"(value, T.stringof));
+        throw new JSONException(trustedFormat!"%s is not a valid value of type %s"(value, T.stringof));
     }
 }
 
@@ -193,7 +193,7 @@ public T require(T)(JSONValue value)
         case JSONType.float_:
             return value.floating.to!T;
         default:
-            throw new JSONException(format!"numeric value required but got %s"(value));
+            throw new JSONException(trustedFormat!"numeric value required but got %s"(value));
     }
 }
 
@@ -205,7 +205,7 @@ public T require(T : string)(JSONValue value)
 {
     if (value.type != JSONType.string)
     {
-        throw new JSONException(format!"string required but got %s"(value));
+        throw new JSONException(trustedFormat!"string required but got %s"(value));
     }
     return value.str;
 }
@@ -222,7 +222,7 @@ public T require(T)(JSONValue value)
     }
     catch (ConvException)
     {
-        throw new JSONException(format!"%s required but got %s"(T.stringof, value));
+        throw new JSONException(trustedFormat!"%s required but got %s"(T.stringof, value));
     }
 }
 
@@ -250,4 +250,9 @@ public T require(T)(JSONValue value)
     {
         throw new JSONException(exception.msg);
     }
+}
+
+private string trustedFormat(string fmt, T...)(T args)
+{
+    return (() @trusted => format!fmt(args))();
 }
