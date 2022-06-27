@@ -4,10 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.8] - 2022-06-22
+## [1.5.5] - 2022-06-22
 ### Fixed
 - Simplify internal copy of std_data_json: remove support for strings other than `string`.
   This avoids a linker error on 2.099.1.
+
+## [1.5.4] - 2022-06-08
+### Fixed
+- Fix DMD 2.099.1 DIP1000 support.
+
+## [1.5.3] - 2022-06-07
+### Fixed
+- decodeJson: add forgotten parameter
+
+## [1.5.2] - 2022-05-09
+### Fixed
+- JSON: Allow encoding std.sumtype values with a transform function.
+
+## [1.5.1] - 2022-05-09
+### Fixed
+- Avoid consuming 'streamCopy' in alias-this resolution.
+
+## [1.5.0] - 2022-05-09
+### Changed
+- Remove sumtype dependency. Use std.sumtype.
+  Limit unit-threaded dependency to unittest.
 
 ## [1.4.7] - 2022-03-25
 ### Fixed
