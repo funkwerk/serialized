@@ -330,12 +330,12 @@ JSONValue parseJSONValue(LexOptions options = LexOptions.init, Input)(ref Input 
  *   $(LI object → OBJECTSTART (KEY value)* OBJECTEND)
  * )
  */
-JSONParserRange!(JSONLexerRange!(Input, options, String))
-    parseJSONStream(LexOptions options = LexOptions.init, String = string, Input)
+JSONParserRange!(JSONLexerRange!(Input, options))
+    parseJSONStream(LexOptions options = LexOptions.init, Input)
         (Input input, string filename = null)
     if (isInputRange!Input && (isSomeChar!(ElementType!Input) || isIntegral!(ElementType!Input)))
 {
-    return parseJSONStream(lexJSON!(options, String)(input, filename));
+    return parseJSONStream(lexJSON!(options)(input, filename));
 }
 /// ditto
 JSONParserRange!Input parseJSONStream(Input)(Input tokens)
@@ -469,8 +469,6 @@ struct JSONParserRange(Input)
 {
     import funkwerk.stdx.data.json.foundation;
 
-    alias String = typeof(Input.front).String;
-
     private {
         Input _input;
         JSONTokenKind[] _containerStack;
@@ -478,7 +476,7 @@ struct JSONParserRange(Input)
         // see doc/why-we-dont-need-save.md
         JSONTokenKind _currentKind;
         JSONParserNodeKind _prevKind;
-        JSONParserNode!String _node;
+        JSONParserNode _node;
     }
 
     /**
@@ -521,7 +519,7 @@ struct JSONParserRange(Input)
     /**
      * Returns the current node from the stream.
      */
-    @property ref const(JSONParserNode!String) front()
+    @property ref const(JSONParserNode) front()
     {
         ensureFrontValid();
         return _node;
@@ -691,7 +689,7 @@ struct JSONParserRange(Input)
  *
  * See $(D parseJSONStream) and $(D JSONParserRange) more information.
  */
-struct JSONParserNode(String)
+struct JSONParserNode
 {
     @safe:
     import std.algorithm : among;
@@ -704,8 +702,8 @@ struct JSONParserNode(String)
         Kind _kind = Kind.none;
         union
         {
-            String _key;
-            JSONToken!String _literal;
+            string _key;
+            JSONToken _literal;
         }
     }
 
@@ -723,13 +721,13 @@ struct JSONParserNode(String)
      *
      * Setting the key will automatically switch the node kind.
      */
-    @property String key() const @trusted nothrow
+    @property string key() const @trusted nothrow
     {
         assert(_kind == Kind.key);
         return _key;
     }
     /// ditto
-    @property String key(String value) nothrow
+    @property string key(string value) nothrow
     {
         _kind = Kind.key;
         return () @trusted { return _key = value; } ();
@@ -740,13 +738,13 @@ struct JSONParserNode(String)
      *
      * Setting the literal will automatically switch the node kind.
      */
-    @property ref inout(JSONToken!String) literal() inout @trusted nothrow
+    @property ref inout(JSONToken) literal() inout @trusted nothrow
     {
         assert(_kind == Kind.literal);
         return _literal;
     }
     /// ditto
-    @property ref JSONToken!String literal(JSONToken!String literal) return nothrow
+    @property ref JSONToken literal(JSONToken literal) return nothrow
     {
         _kind = Kind.literal;
         return *() @trusted { return &(_literal = literal); } ();
@@ -781,12 +779,12 @@ struct JSONParserNode(String)
 
     unittest
     {
-        JSONToken!string t1, t2, t3;
+        JSONToken t1, t2, t3;
         t1.string = "test";
         t2.string = "test".idup;
         t3.string = "other";
 
-        JSONParserNode!string n1, n2;
+        JSONParserNode n1, n2;
         n2.literal = t1; assert(n1 != n2);
         n1.literal = t1; assert(n1 == n2);
         n1.literal = t3; assert(n1 != n2);
@@ -847,18 +845,17 @@ enum JSONParserNodeKind
 
 
 /// Tests if a given type is an input range of $(D JSONToken).
-enum isJSONTokenInputRange(R) = isInputRange!R && is(typeof(R.init.front) : JSONToken!String, String);
+enum isJSONTokenInputRange(R) = isInputRange!R && is(typeof(R.init.front) : JSONToken);
 
 static assert(isJSONTokenInputRange!(JSONLexerRange!string));
 
 /// Tests if a given type is an input range of $(D JSONParserNode).
-enum isJSONParserNodeInputRange(R) = isInputRange!R && is(typeof(R.init.front) : JSONParserNode!String, String);
+enum isJSONParserNodeInputRange(R) = isInputRange!R && is(typeof(R.init.front) : JSONParserNode);
 
 static assert(isJSONParserNodeInputRange!(JSONParserRange!(JSONLexerRange!string)));
 
 // Workaround for https://issues.dlang.org/show_bug.cgi?id=14425
 private alias Workaround_14425 = JSONParserRange!(JSONLexerRange!string);
-
 
 /**
  * Skips a single JSON value in a parser stream.

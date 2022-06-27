@@ -16,7 +16,7 @@ struct JsonValueRange
 {
     public bool empty;
 
-    private JSONParserNode!string currentValue;
+    private JSONParserNode currentValue;
 
     private ValueIterator[] iterators;
 
@@ -52,7 +52,7 @@ struct JsonValueRange
             empty, currentValue, level, current, previous, iterators[0 .. max(0, level)]);
     }
 
-    public @property ref JSONParserNode!string front() return
+    public @property ref JSONParserNode front() return
     in (!empty)
     {
         return this.currentValue;
@@ -126,24 +126,22 @@ struct JsonValueRange
 
     private void stepInto(JSONValue value)
     {
-        alias Token = JSONToken!string;
-
         with (JSONType) final switch (value.type)
         {
             case null_:
-                this.currentValue.literal = Token(null);
+                this.currentValue.literal = JSONToken(null);
                 break;
             case string:
-                this.currentValue.literal = Token(value.str);
+                this.currentValue.literal = JSONToken(value.str);
                 break;
             case integer:
-                this.currentValue.literal = Token(value.integer);
+                this.currentValue.literal = JSONToken(value.integer);
                 break;
             case uinteger:
-                this.currentValue.literal = Token(value.uinteger);
+                this.currentValue.literal = JSONToken(value.uinteger);
                 break;
             case float_:
-                this.currentValue.literal = Token(value.floating);
+                this.currentValue.literal = JSONToken(value.floating);
                 break;
             case array:
                 this.currentValue.kind = JSONParserNodeKind.arrayStart;
@@ -154,10 +152,10 @@ struct JsonValueRange
                 pushState(value);
                 break;
             case true_:
-                this.currentValue.literal = Token(true);
+                this.currentValue.literal = JSONToken(true);
                 break;
             case false_:
-                this.currentValue.literal = Token(false);
+                this.currentValue.literal = JSONToken(false);
                 break;
         }
     }

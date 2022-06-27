@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.8] - 2022-06-22
+### Fixed
+- Simplify internal copy of std_data_json: remove support for strings other than `string`.
+  This avoids a linker error on 2.099.1.
+
 ## [1.4.7] - 2022-03-25
 ### Fixed
 - Encode null classes as JSON "null".

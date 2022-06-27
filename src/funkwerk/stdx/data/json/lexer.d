@@ -62,12 +62,12 @@ import funkwerk.stdx.data.json.foundation;
  *   Instead, a token with kind $(D JSONToken.Kind.error) is generated as the
  *   last token in the range.
  */
-JSONLexerRange!(Input, options, String) lexJSON
-    (LexOptions options = LexOptions.init, String = string, Input)
+JSONLexerRange!(Input, options) lexJSON
+    (LexOptions options = LexOptions.init, Input)
     (Input input, string filename = null)
     if (isInputRange!Input && (isSomeChar!(ElementType!Input) || isIntegral!(ElementType!Input)))
 {
-    return JSONLexerRange!(Input, options, String)(input, filename);
+    return JSONLexerRange!(Input, options)(input, filename);
 }
 
 ///
@@ -204,7 +204,7 @@ unittest { // test built-in UTF validation
  *
  * See $(D lexJSON) for more information.
 */
-struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = string)
+struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
     if (isInputRange!Input && (isSomeChar!(ElementType!Input) || isIntegral!(ElementType!Input)))
 {
     import std.string : representation;
@@ -222,7 +222,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     private
     {
         InternalInput _input;
-        JSONToken!String _front;
+        JSONToken _front;
         Location _loc;
         string _error;
     }
@@ -259,7 +259,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     /**
      * Returns the current token in the stream.
      */
-    @property ref const(JSONToken!String) front()
+    @property ref const(JSONToken) front()
     {
         ensureFrontValid();
         return _front;
@@ -398,7 +398,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
 
     private void parseString()
     {
-        static if ((is(Input == string) || is(Input == immutable(ubyte)[])) && is(String == string)) // TODO: make this work for other kinds of "String"
+        static if ((is(Input == string) || is(Input == immutable(ubyte)[])))
         {
             InternalInput lit;
             bool has_escapes = false;
@@ -412,7 +412,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
                         return;
                     }
                 }
-                JSONString!String js;
+                JSONString js;
                 if (has_escapes) js.rawValue = litstr;
                 else js.value = litstr[1 .. $-1];
                 _front.string = js;
@@ -422,12 +422,12 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
         else
         {
             bool appender_init = false;
-            Appender!String dst;
-            String slice;
+            Appender!string dst;
+            string slice;
 
             void initAppender()
             @safe {
-                dst = appender!String();
+                dst = appender!string();
                 appender_init = true;
             }
 
@@ -654,7 +654,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     import std.exception;
     import std.string : format, representation;
 
-    static JSONString!string parseStringHelper(R)(ref R input, ref Location loc)
+    static JSONString parseStringHelper(R)(ref R input, ref Location loc)
     {
         auto rng = JSONLexerRange!R(input);
         rng.parseString();
@@ -844,7 +844,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
 
 @safe unittest
 {
-    auto tokens = lexJSON!(LexOptions.init, char[])(`{"foo": "bar"}`);
+    auto tokens = lexJSON(`{"foo": "bar"}`);
     assert(tokens.front.kind == JSONTokenKind.objectStart);
     tokens.popFront();
     assert(tokens.front.kind == JSONTokenKind.string);
@@ -862,19 +862,18 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
 /**
  * A low-level JSON token as returned by $(D JSONLexer).
 */
-@safe struct JSONToken(S)
+@safe struct JSONToken
 {
     import std.algorithm : among;
     import std.bigint : BigInt;
 
     private alias Kind = JSONTokenKind; // compatibility alias
-    alias String = S;
 
     private
     {
         union
         {
-            JSONString!String _string;
+            JSONString _string;
             bool _boolean;
             JSONNumber _number;
         }
@@ -895,9 +894,9 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     // ditto
     this(double value) @trusted { _kind = Kind.number; _number = value; }
     // ditto
-    this(JSONString!String value) @trusted { _kind = Kind.string; _string = value; }
+    this(JSONString value) @trusted { _kind = Kind.string; _string = value; }
     // ditto
-    this(String value) @trusted { _kind = Kind.string; _string = value; }
+    this(.string value) @trusted { _kind = Kind.string; _string = value; }
 
     /** Constructs a token with a specific kind.
       *
@@ -910,7 +909,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     }
 
 
-    ref JSONToken opAssign(ref JSONToken other) nothrow @trusted @nogc
+    ref JSONToken opAssign(ref JSONToken other) nothrow @trusted @nogc return
     {
         _kind = other._kind;
         switch (_kind) with (Kind) {
@@ -967,18 +966,18 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
     @property JSONNumber number(BigInt value) nothrow @nogc { return this.number = JSONNumber(value); }
 
     /// Gets/sets the string value of the token.
-    @property const(JSONString!String) string() const pure nothrow @trusted @nogc
+    @property const(JSONString) string() const pure nothrow @trusted @nogc
         in (_kind == Kind.string, "Token is not a string.")
-        { return _kind == Kind.string ? _string : JSONString!String.init; }
+        { return _kind == Kind.string ? _string : JSONString.init; }
     /// ditto
-    @property JSONString!String string(JSONString!String value) pure nothrow @nogc
+    @property JSONString string(JSONString value) pure nothrow @nogc
     {
         _kind = Kind.string;
         () @trusted { _string = value; } ();
         return value;
     }
     /// ditto
-    @property JSONString!String string(String value) pure nothrow @nogc { return this.string = JSONString!String(value); }
+    @property JSONString string(.string value) pure nothrow @nogc { return this.string = JSONString(value); }
 
     /**
      * Enables equality comparisons.
@@ -1039,7 +1038,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init, String = stri
 
 @safe unittest
 {
-    JSONToken!string tok;
+    JSONToken tok;
 
     assert((tok.boolean = true) == true);
     assert(tok.kind == JSONTokenKind.boolean);
@@ -1097,12 +1096,12 @@ enum JSONTokenKind
 /**
  * Represents a JSON string literal with lazy (un)escaping.
  */
-@safe struct JSONString(String) {
+@safe struct JSONString {
     import std.typecons : Tuple, tuple;
 
     private {
-        String _value;
-        String _rawValue;
+        string _value;
+        string _rawValue;
     }
 
     nothrow:
@@ -1110,7 +1109,7 @@ enum JSONTokenKind
     /**
      * Constructs a JSONString from the given string value (unescaped).
      */
-    this(String value) pure nothrow @nogc
+    this(string value) pure nothrow @nogc
     {
         _value = value;
     }
@@ -1118,7 +1117,7 @@ enum JSONTokenKind
     /**
      * The decoded (unescaped) string value.
      */
-    @property String value()
+    @property string value()
     {
         if (!_value.length && _rawValue.length) {
             auto res = unescapeStringLiteral(_rawValue, _value);
@@ -1127,10 +1126,10 @@ enum JSONTokenKind
         return _value;
     }
     /// ditto
-    @property const(String) value() const
+    @property const(string) value() const
     {
         if (!_value.length && _rawValue.length) {
-            String unescaped;
+            string unescaped;
             auto res = unescapeStringLiteral(_rawValue, unescaped);
             assert(res, "Invalid raw string literal passed to JSONString: "~_rawValue);
             return unescaped;
@@ -1138,7 +1137,7 @@ enum JSONTokenKind
         return _value;
     }
     /// ditto
-    @property String value(String val) nothrow @nogc
+    @property string value(string val) nothrow @nogc
     {
         _rawValue = null;
         return _value = val;
@@ -1147,14 +1146,14 @@ enum JSONTokenKind
     /**
      * The raw (escaped) string literal, including the enclosing quotation marks.
      */
-    @property String rawValue()
+    @property string rawValue()
     {
         if (!_rawValue.length && _value.length)
             _rawValue = escapeStringLiteral(_value);
         return _rawValue;
     }
     /// ditto
-    @property String rawValue(String val) nothrow @nogc
+    @property string rawValue(string val) nothrow @nogc
     {
         import std.algorithm : canFind;
         import std.string : representation;
@@ -1172,9 +1171,9 @@ enum JSONTokenKind
      *   set to `true` if the returned string is in decoded form. `false` is
      *   returned otherwise.
      */
-    @property Tuple!(const(String), bool) anyValue() const pure @nogc
+    @property Tuple!(const(string), bool) anyValue() const pure @nogc
     {
-        alias T = Tuple!(const(String), bool); // work around "Cannot convert Tuple!(string, bool) to Tuple!(const(string), bool)" error when using tuple()
+        alias T = Tuple!(const(string), bool); // work around "Cannot convert Tuple!(string, bool) to Tuple!(const(string), bool)" error when using tuple()
         return !_rawValue.length ? T(_value, true) : T(_rawValue, false);
     }
 
@@ -1185,9 +1184,9 @@ enum JSONTokenKind
     /// ditto
     bool opEquals(in JSONString other) const nothrow { return this.value == other.value; }
     /// ditto
-    bool opEquals(in String other) nothrow { return this.value == other; }
+    bool opEquals(in string other) nothrow { return this.value == other; }
     /// ditto
-    bool opEquals(in String other) const nothrow { return this.value == other; }
+    bool opEquals(in string other) const nothrow { return this.value == other; }
 
     /// Support relational comparisons
     int opCmp(JSONString other) nothrow @trusted { import std.algorithm; return cmp(this.value, other.value); }
@@ -1197,12 +1196,12 @@ enum JSONTokenKind
 }
 
 @safe unittest {
-    JSONString!string s = "test";
+    JSONString s = "test";
     assert(s == "test");
     assert(s.value == "test");
     assert(s.rawValue == `"test"`);
 
-    JSONString!string t;
+    JSONString t;
     auto h = `"hello"`;
     s.rawValue = h;
     t = s; assert(s == t);
@@ -1220,11 +1219,6 @@ enum JSONTokenKind
     t = s; assert(s == t);
     assert(&s.rawValue[0] is &w[0]);
     assert(&s.value[0] !is &h[1]);
-
-    JSONString!(char[]) u = "test".dup;
-    assert(u == "test");
-    assert(u.value == "test");
-    assert(u.rawValue == `"test"`);
 }
 
 

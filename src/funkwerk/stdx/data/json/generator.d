@@ -67,7 +67,7 @@ string toJSON(GeneratorOptions options = GeneratorOptions.init, Input)(Input tok
     return dst.data;
 }
 /// ditto
-string toJSON(GeneratorOptions options = GeneratorOptions.init, String)(JSONToken!String token)
+string toJSON(GeneratorOptions options = GeneratorOptions.init)(JSONToken token)
 {
     import std.array;
     auto dst = appender!string();
@@ -116,7 +116,7 @@ string toJSON(GeneratorOptions options = GeneratorOptions.init, String)(JSONToke
     auto tokens = lexJSON(`{"a": [], "b": [1, {}, null, true, false]}`);
     assert(tokens.toJSON!(GeneratorOptions.compact)() == `{"a":[],"b":[1,{},null,true,false]}`);
 
-    JSONToken!string tok;
+    JSONToken tok;
     tok.string = "Hello World";
     assert(tok.toJSON() == `"Hello World"`);
 }
@@ -164,7 +164,7 @@ void writeJSON(GeneratorOptions options = GeneratorOptions.init, Output, Input)(
     }
 }
 /// ditto
-void writeJSON(GeneratorOptions options = GeneratorOptions.init, String, Output)(in ref JSONToken!String token, ref Output output)
+void writeJSON(GeneratorOptions options = GeneratorOptions.init, Output)(in ref JSONToken token, ref Output output)
     if (isOutputRange!(Output, char))
 {
     final switch (token.kind) with (JSONTokenKind)
@@ -220,7 +220,7 @@ struct JSONOutputRange(R, GeneratorOptions options = GeneratorOptions.init)
 
     /** Writes a single JSON primitive to the destination character range.
     */
-    void put(String)(JSONParserNode!String node)
+    void put(JSONParserNode node)
     {
         enum pretty_print = (options & GeneratorOptions.compact) == 0;
 
@@ -273,9 +273,9 @@ struct JSONOutputRange(R, GeneratorOptions options = GeneratorOptions.init)
         }
     }
     /// ditto
-    void put(String)(JSONToken!String token)
+    void put(JSONToken token)
     {
-        final switch (token.kind) with (JSONToken.Kind) {
+        final switch (token.kind) with (JSONTokenKind) {
             case none: assert(false);
             case error: m_output.put("_error_"); break;
             case null_: put(null); break;
@@ -301,7 +301,7 @@ struct JSONOutputRange(R, GeneratorOptions options = GeneratorOptions.init)
     /// ditto
     void put(double value) { m_output.writeNumber!options(value); }
     /// ditto
-    void put(String)(JSONString!String value)
+    void put(JSONString value)
     {
         auto s = value.anyValue;
         if (s[0]) put(s[1]); // decoded string
