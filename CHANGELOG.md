@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.6] - 2022-07-15
+### Fixed
+- When an invariant is violated while JSON decoding a type, we now throw a parser exception.
+  Note that this will not work in `-release` and is hence fundamentally dangerous!
+  However, if you never use `-release` anyways, it's fine.
+
 ## [1.5.5] - 2022-06-22
 ### Fixed
 - Simplify internal copy of std_data_json: remove support for strings other than `string`.

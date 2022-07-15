@@ -640,3 +640,25 @@ unittest
     // when/then
     text.decode!Container.should.equal(Container(Entry(["key": "value"])));
 }
+
+@("type with invariant")
+unittest
+{
+    // given
+    const text = `{ "a": 2, "b": 3 }`;
+
+    static struct Value
+    {
+        int a;
+
+        int b;
+
+        invariant (this.a == this.b);
+
+        mixin(GenerateAll);
+    }
+
+    // when/then
+    text.decode!Value.should.throwA!JSONException(
+        "unittest/text/json/DecodeTest.d:656 - while decoding Value: Assertion failure");
+}

@@ -85,6 +85,7 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
     in (isJSONParserNodeInputRange!JsonStream)
     {
         import boilerplate.util : formatNamed, optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
+        import core.exception : AssertError;
         import meta.SafeUnqual : SafeUnqual;
         import std.exception : enforce;
         import std.meta : AliasSeq, anySatisfy, ApplyLeft;
@@ -344,7 +345,16 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                     }
                 }}
 
-                return builder.builderValue;
+                // catch invariant violations
+                try
+                {
+                    return builder.builderValue;
+                }
+                catch (AssertError error)
+                {
+                    throw new JSONException(format!`%s:%s - while decoding %s: %s`(
+                        error.file, error.line, target, error.msg));
+                }
             }
         }
     }
