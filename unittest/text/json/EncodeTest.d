@@ -417,6 +417,30 @@ template encodeTests(bool useEncodeJson)
         actual.should.equal(expected);
     }
 
+    @(prefix ~ "encode non-default Nullable")
+    unittest
+    {
+        import std.typecons : Nullable;
+
+        static struct Value
+        {
+            Nullable!int field;
+
+            mixin(GenerateThis);
+        }
+
+        // given
+        const Value value = Value(Nullable!int());
+
+        // when
+        const actual = testEncode!Value(value);
+
+        // then
+        enum expected = `{ "field": null }`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
     static if (__traits(compiles, { import std.sumtype; }))
     {
         @(prefix ~ "encode std.sumtype")

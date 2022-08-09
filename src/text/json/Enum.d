@@ -44,7 +44,7 @@ unittest
 /**
  * Helper to decode a JSON style enum string (ENTRY_NAME) as a DStyle enum (entryName).
  *
- * Use like so: `alias decode = decodeEnum!EnumType;` when forming your encode overload.
+ * Use like so: `alias decode = decodeEnum!EnumType;` when forming your decode overload.
  * Throws: JSONException if the input text does not represent an enum member.
  */
 template decodeEnum(T)

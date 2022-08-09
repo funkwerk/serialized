@@ -161,6 +161,7 @@ do
         enum builderField = optionallyRemoveTrailingUnderline!constructorField;
         alias constructorFieldSymbol = __traits(getMember, Type.ConstructorInfo.FieldInfo, constructorField);
         alias MemberType = constructorFieldSymbol.Type;
+        enum useDefault = constructorFieldSymbol.useDefault;
         const MemberType memberValue = __traits(getMember, value, builderField);
 
         static if (is(MemberType : Nullable!Arg, Arg))
@@ -176,17 +177,17 @@ do
 
         alias attributes = AliasSeq!(constructorFieldSymbol.attributes);
 
+        static if (udaIndex!(Json, attributes) != -1)
+        {
+            enum name = attributes[udaIndex!(Json, attributes)].name;
+        }
+        else
+        {
+            enum name = constructorField.removeTrailingUnderline;
+        }
+
         if (includeMember)
         {
-            static if (udaIndex!(Json, attributes) != -1)
-            {
-                enum name = attributes[udaIndex!(Json, attributes)].name;
-            }
-            else
-            {
-                enum name = constructorField.removeTrailingUnderline;
-            }
-
             auto finalMemberValue = mixin(getMemberValue);
 
             enum sameField(string lhs, string rhs)
@@ -206,6 +207,11 @@ do
                 encodeJsonStream!(typeof(finalMemberValue), transform, Range, attributes)(
                     output, finalMemberValue);
             }
+        }
+        else if (!useDefault)
+        {
+            output.put(JSONOutputToken.key(name));
+            output.put(JSONOutputToken(JSONValue(null)));
         }
     }}
 }

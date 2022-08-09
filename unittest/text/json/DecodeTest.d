@@ -662,3 +662,22 @@ unittest
     text.decode!Value.should.throwA!JSONException(
         "unittest/text/json/DecodeTest.d:656 - while decoding Value: Assertion failure");
 }
+
+@("non-default Nullable")
+unittest
+{
+    import std.typecons : Nullable;
+
+    static struct Value
+    {
+        Nullable!int field;
+
+        mixin(GenerateThis);
+    }
+
+    // given
+    const text = `{ "field": null }`;
+
+    // when/then
+    text.decode!Value.should.equal(Value(Nullable!int()));
+}
