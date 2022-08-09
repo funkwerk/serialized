@@ -124,7 +124,7 @@ private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Rang
             {
                 if (value is null)
                 {
-                    output.put(JSONOutputToken(JSONValue(null)));
+                    output.put(JSONOutputToken(null));
                     return;
                 }
             }
@@ -211,7 +211,7 @@ do
         else if (!useDefault)
         {
             output.put(JSONOutputToken.key(name));
-            output.put(JSONOutputToken(JSONValue(null)));
+            output.put(JSONOutputToken(null));
         }
     }}
 }
@@ -238,8 +238,7 @@ if (!is(T: Nullable!Arg, Arg))
     }
     else static if (is(T == typeof(null)))
     {
-        // FIXME proper null token?
-        output.put(JSONOutputToken(JSONValue(null)));
+        output.put(JSONOutputToken(null));
     }
     else static if (is(T : const SysTime))
     {
@@ -332,6 +331,9 @@ private struct StringSink
                     token.sysTime.toISOExtString(this.output);
                     this.output.put("\"");
                     break;
+                case null_:
+                    this.output.put("null");
+                    break;
                 case json:
                     this.output.put(token.json.toJSON);
                     break;
@@ -393,6 +395,9 @@ private struct JSONValueSink
                     break;
                 case sysTime:
                     addValue(JSONValue(token.sysTime.toISOExtString));
+                    break;
+                case null_:
+                    addValue(JSONValue(null));
                     break;
                 case json:
                     addValue(token.json);
@@ -498,6 +503,7 @@ struct JSONOutputToken
         double_,
         string_,
         sysTime,
+        null_,
         json,
     }
     Kind kind;
@@ -550,5 +556,10 @@ struct JSONOutputToken
                 this.%s = value;
             }
         }(member, member, member));
+    }
+
+    this(typeof(null) nullptr)
+    {
+        this.kind = Kind.null_;
     }
 }
