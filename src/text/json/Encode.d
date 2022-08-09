@@ -146,7 +146,7 @@ in
 }
 do
 {
-    import boilerplate.util : formatNamed, optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
+    import boilerplate.util : optionallyRemoveTrailingUnderline, removeTrailingUnderline, udaIndex;
     import std.meta : AliasSeq, anySatisfy, ApplyLeft;
     import std.traits : fullyQualifiedName;
 
@@ -159,57 +159,54 @@ do
     static foreach (string constructorField; Type.ConstructorInfo.fields)
     {{
         enum builderField = optionallyRemoveTrailingUnderline!constructorField;
+        alias constructorFieldSymbol = __traits(getMember, Type.ConstructorInfo.FieldInfo, constructorField);
+        alias MemberType = constructorFieldSymbol.Type;
+        const MemberType memberValue = __traits(getMember, value, builderField);
 
-        mixin(formatNamed!q{
-            alias MemberType = SafeUnqual!(Type.ConstructorInfo.FieldInfo.%(constructorField).Type);
+        static if (is(MemberType : Nullable!Arg, Arg))
+        {
+            bool includeMember = !memberValue.isNull;
+            enum getMemberValue = "memberValue.get";
+        }
+        else
+        {
+            enum includeMember = true;
+            enum getMemberValue = "memberValue";
+        }
 
-            const MemberType memberValue = value.%(builderField);
+        alias attributes = AliasSeq!(constructorFieldSymbol.attributes);
 
-            static if (is(MemberType : Nullable!Arg, Arg))
+        if (includeMember)
+        {
+            static if (udaIndex!(Json, attributes) != -1)
             {
-                bool includeMember = !memberValue.isNull;
-                enum getMemberValue = "memberValue.get";
+                enum name = attributes[udaIndex!(Json, attributes)].name;
             }
             else
             {
-                enum includeMember = true;
-                enum getMemberValue = "memberValue";
+                enum name = constructorField.removeTrailingUnderline;
             }
 
-            alias attributes = AliasSeq!(Type.ConstructorInfo.FieldInfo.%(constructorField).attributes);
+            auto finalMemberValue = mixin(getMemberValue);
 
-            if (includeMember)
+            enum sameField(string lhs, string rhs)
+                = optionallyRemoveTrailingUnderline!lhs== optionallyRemoveTrailingUnderline!rhs;
+            enum memberIsAliasedToThis = anySatisfy!(
+                ApplyLeft!(sameField, constructorField),
+                __traits(getAliasThis, Type));
+
+            static if (memberIsAliasedToThis)
             {
-                static if (udaIndex!(Json, attributes) != -1)
-                {
-                    enum name = attributes[udaIndex!(Json, attributes)].name;
-                }
-                else
-                {
-                    enum name = constructorField.removeTrailingUnderline;
-                }
-
-                auto finalMemberValue = mixin(getMemberValue);
-
-                enum sameField(string lhs, string rhs)
-                    = optionallyRemoveTrailingUnderline!lhs== optionallyRemoveTrailingUnderline!rhs;
-                enum memberIsAliasedToThis = anySatisfy!(
-                    ApplyLeft!(sameField, constructorField),
-                    __traits(getAliasThis, Type));
-
-                static if (memberIsAliasedToThis)
-                {
-                    encodeStruct!(typeof(finalMemberValue), transform, Range, attributes)(
-                        output, finalMemberValue);
-                }
-                else
-                {
-                    output.put(JSONOutputToken.key(name));
-                    encodeJsonStream!(typeof(finalMemberValue), transform, Range, attributes)(
-                        output, finalMemberValue);
-                }
+                encodeStruct!(typeof(finalMemberValue), transform, Range, attributes)(
+                    output, finalMemberValue);
             }
-        }.values(Info(builderField, constructorField)));
+            else
+            {
+                output.put(JSONOutputToken.key(name));
+                encodeJsonStream!(typeof(finalMemberValue), transform, Range, attributes)(
+                    output, finalMemberValue);
+            }
+        }
     }}
 }
 
