@@ -130,7 +130,7 @@ unittest
     const text = .encode(value);
 
     // then
-    const expected = `<root/>`;
+    const expected = `<root><foo/></root>`;
 
     text.should.equal(expected);
 }
@@ -316,6 +316,51 @@ unittest
 
     // then
     text.should.equal(`<root/>`);
+}
+
+@("struct with optional date element")
+unittest
+{
+    @(Xml.Element("root"))
+    static struct NullableAttributes
+    {
+        @(This.Default)
+        @(Xml.Element("date"))
+        Nullable!Date date;
+
+        mixin(GenerateThis);
+    }
+
+    // given
+    const root = NullableAttributes();
+
+    // when
+    const text = root.encode;
+
+    // then
+    text.should.equal(`<root/>`);
+}
+
+@("struct with empty date element")
+unittest
+{
+    @(Xml.Element("root"))
+    static struct NullableAttributes
+    {
+        @(Xml.Element("date"))
+        Nullable!Date date;
+
+        mixin(GenerateThis);
+    }
+
+    // given
+    const root = NullableAttributes();
+
+    // when
+    const text = root.encode;
+
+    // then
+    text.should.equal(`<root><date/></root>`);
 }
 
 @("SumType")

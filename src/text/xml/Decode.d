@@ -54,7 +54,7 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
     import std.algorithm : map;
     import std.meta : AliasSeq, anySatisfy, ApplyLeft;
     import std.range : array, ElementType;
-    import std.string : strip;
+    import std.string : empty, strip;
     import std.traits : fullyQualifiedName, isIterable, Unqual;
     import std.typecons : Nullable, Tuple;
 
@@ -127,20 +127,33 @@ public auto decodeUnchecked(T, attributes...)(XmlNode node)
                 {
                     enum name = Xml.elementName!attributes(typeName!Type).get;
 
-                    static if (isNullable
-                        || __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
+                    static if (isNullable)
                     {
-                        static assert(
-                            __traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault,
-                            format!"%s." ~ constructorField ~ " is Nullable, but missing @(This.Default)!"
-                                (fullyQualifiedName!T));
-
-                        auto child = node.findChild(name);
-
-                        if (!child.isNull)
+                        static if (__traits(getMember, T.ConstructorInfo.FieldInfo, constructorField).useDefault)
                         {
-                            __traits(getMember, builder, builderField)
-                                = decodeUnchecked!(DecodeType, attributes)(child.get);
+                            // missing element = null
+                            auto child = node.findChild(name);
+
+                            if (!child.isNull)
+                            {
+                                __traits(getMember, builder, builderField)
+                                    = decodeUnchecked!(DecodeType, attributes)(child.get);
+                            }
+                        }
+                        else
+                        {
+                            auto child = node.requireChild(name);
+
+                            if (child.text.strip.empty)
+                            {
+                                // empty element = null
+                                __traits(getMember, builder, builderField) = Type();
+                            }
+                            else
+                            {
+                                __traits(getMember, builder, builderField)
+                                    = .decodeUnchecked!(DecodeType, attributes)(child);
+                            }
                         }
                     }
                     else

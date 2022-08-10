@@ -19,7 +19,8 @@ import text.xml.Xml;
  * Types passed directly to `encode` must be annotated with an @(Xml.Element("...")) attribute.
  * Child types must be annotated at their fields in the containing type.
  * For array fields, their values are encoded sequentially.
- * Nullable fields are omitted if they are null.
+ * Nullable fields are empty if they are null.
+ * If they are also @(This.Default), they are omitted.
  */
 public string encode(T)(const T value)
 in
@@ -78,12 +79,22 @@ private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer
         enum hasXmlTag = !Xml.elementName!memberAttrs(typeName!PlainMemberT).isNull
             || udaIndex!(Xml.Text, memberAttrs) != -1;
         enum isSumType = is(PlainMemberT : SumType!U, U...);
+        static if (__traits(hasMember, T, "ConstructorInfo")
+            && __traits(hasMember, T.ConstructorInfo.FieldInfo, member))
+        {
+            enum useDefault = __traits(getMember, T.ConstructorInfo.FieldInfo, member).useDefault;
+        }
+        else
+        {
+            enum useDefault = false;
+        }
 
         static if (hasXmlTag || isSumType)
         {
             static if (is(PlainMemberT : Nullable!Arg, Arg))
             {
-                if (!memberValue.isNull)
+                // if @(This.Default) and null, tag is omitted.
+                if (!(useDefault && memberValue.isNull))
                 {
                     tagIsEmpty = false;
                 }
@@ -105,12 +116,21 @@ private void encodeNode(T, attributes...)(ref XMLWriter!(Appender!string) writer
             alias memberAttrs = AliasSeq!(__traits(getAttributes, __traits(getMember, value, member)));
             alias PlainMemberT = typeof(cast() memberValue);
             enum name = Xml.elementName!memberAttrs(typeName!PlainMemberT);
+            static if (__traits(hasMember, T, "ConstructorInfo")
+                && __traits(hasMember, T.ConstructorInfo.FieldInfo, member))
+            {
+                enum useDefault = __traits(getMember, T.ConstructorInfo.FieldInfo, member).useDefault;
+            }
+            else
+            {
+                enum useDefault = false;
+            }
 
             static if (!name.isNull)
             {
                 enum string nameGet__ = name.get; // work around for weird compiler bug
 
-                encodeNodeImpl!(nameGet__, PlainMemberT, memberAttrs)(writer, memberValue);
+                encodeNodeImpl!(nameGet__, PlainMemberT, useDefault, memberAttrs)(writer, memberValue);
             }
             else static if (udaIndex!(Xml.Text, memberAttrs) != -1)
             {
@@ -145,7 +165,7 @@ private void encodeSumType(T)(ref XMLWriter!(Appender!string) writer, const T va
         alias attributes = AliasSeq!(__traits(getAttributes, BaseType));
         enum name = Xml.elementName!attributes(typeName!BaseType).get;
 
-        encodeNodeImpl!(name, T, attributes)(writer, value);
+        encodeNodeImpl!(name, T, false, attributes)(writer, value);
     }, T.Types));
 }
 
@@ -198,7 +218,8 @@ unittest
     static assert(attrFilter!(s, false, "T") == false);
 }
 
-private void encodeNodeImpl(string name, T, attributes...)(ref XMLWriter!(Appender!string) writer, const T value)
+private void encodeNodeImpl(string name, T, bool useDefault, attributes...)(ref XMLWriter!(Appender!string) writer,
+    const T value)
 {
     alias PlainT = typeof(cast() value);
 
@@ -215,7 +236,13 @@ private void encodeNodeImpl(string name, T, attributes...)(ref XMLWriter!(Append
     {
         if (!value.isNull)
         {
-            encodeNodeImpl!(name, Arg, attributes)(writer, value.get);
+            encodeNodeImpl!(name, Arg, false, attributes)(writer, value.get);
+        }
+        else if (!useDefault)
+        {
+            // <foo />
+            writer.openStartTag(name, Newline.no);
+            writer.closeStartTag(EmptyTag.yes);
         }
     }
     else static if (udaIndex!(Xml.Encode, attributes) != -1)
@@ -252,7 +279,7 @@ private void encodeNodeImpl(string name, T, attributes...)(ref XMLWriter!(Append
 
         foreach (IterationType!PlainT a; value)
         {
-            encodeNodeImpl!(name, typeof(a), attributes)(writer, a);
+            encodeNodeImpl!(name, typeof(a), false, attributes)(writer, a);
         }
     }
     else

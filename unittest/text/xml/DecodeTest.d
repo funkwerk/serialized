@@ -107,7 +107,7 @@ unittest
     value.should.equal(expected);
 }
 
-@("field is Nullable")
+@("field is Nullable default")
 unittest
 {
     import std.typecons : Nullable;
@@ -157,6 +157,32 @@ unittest
 
     // given
     const text = `<root><foo>5</foo></root>`;
+
+    // when
+    auto value = decode!Value(text);
+
+    // then
+    const expected = Value(Nullable!int());
+
+    value.should.equal(expected);
+}
+
+@("field is Nullable")
+unittest
+{
+    import std.typecons : Nullable;
+
+    @(Xml.Element("root"))
+    struct Value
+    {
+        @(Xml.Element("foo"))
+        Nullable!int foo;
+
+        mixin(GenerateAll);
+    }
+
+    // given
+    const text = `<root><foo></foo></root>`;
 
     // when
     auto value = decode!Value(text);
