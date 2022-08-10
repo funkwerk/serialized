@@ -4,6 +4,7 @@ import boilerplate;
 import dshould;
 import std.datetime;
 import std.json;
+import std.typecons;
 import text.json.Decode;
 import text.json.Json;
 import text.json.ParserMarker;
@@ -13,8 +14,6 @@ static foreach (fromJsonValue; [false, true])
     @("JSON text with various types is decoded" ~ (fromJsonValue ? " from JSONValue" : ""))
     unittest
     {
-        import std.typecons : Nullable, nullable;
-
         // given
         const text = `
         {
@@ -92,8 +91,6 @@ unittest
 
 struct OptionalValues
 {
-    import std.typecons : Nullable;
-
     enum Enum
     {
         A
@@ -575,8 +572,6 @@ unittest
 @("parsing is resumed")
 unittest
 {
-    import std.typecons : Nullable, nullable;
-
     static immutable struct FirstPass
     {
         string str;
@@ -660,14 +655,12 @@ unittest
 
     // when/then
     text.decode!Value.should.throwA!JSONException(
-        "unittest/text/json/DecodeTest.d:656 - while decoding Value: Assertion failure");
+        "unittest/text/json/DecodeTest.d:651 - while decoding Value: Assertion failure");
 }
 
 @("non-default Nullable")
 unittest
 {
-    import std.typecons : Nullable;
-
     static struct Value
     {
         Nullable!int field;
@@ -680,4 +673,11 @@ unittest
 
     // when/then
     text.decode!Value.should.equal(Value(Nullable!int()));
+}
+
+@("nullable value")
+unittest
+{
+    `null`.decode!(Nullable!int).should.be(Nullable!int());
+    `5`.decode!(Nullable!int).should.be(5);
 }

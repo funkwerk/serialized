@@ -187,6 +187,19 @@ public template decodeJsonInternal(T, alias transform, Flag!"logErrors" logError
                 jsonStream.skipValue;
                 return marker;
             }
+            else static if (is(T : Nullable!U, U))
+            {
+                if (jsonStream.front.kind == JSONParserNodeKind.literal
+                    && jsonStream.front.literal.kind == JSONTokenKind.null_)
+                {
+                    jsonStream.popFront;
+                    return T();
+                }
+                else
+                {
+                    return T(.decodeJson!(U, transform, logErrors, attributes)(jsonStream, target));
+                }
+            }
             else // object
             {
                 static if (is(T == struct) || is(T == class))

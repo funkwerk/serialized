@@ -109,6 +109,17 @@ private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Rang
             }
             output.put(JSONOutputToken.arrayEnd);
         }
+        else static if (is(Type : Nullable!U, U))
+        {
+            if (value.isNull)
+            {
+                output.put(JSONOutputToken(null));
+            }
+            else
+            {
+                encodeJsonStream!(U, transform, Range, attributes)(output, value.get);
+            }
+        }
         else static if (__traits(compiles, { import std.sumtype : SumType; static assert(isInstanceOf!(SumType, T)); }))
         {
             import std.sumtype : match, SumType;

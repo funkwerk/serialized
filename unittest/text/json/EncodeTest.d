@@ -4,6 +4,7 @@ import boilerplate;
 import dshould;
 import std.datetime;
 import std.json;
+import std.typecons;
 import text.json.Encode;
 import text.json.Json;
 
@@ -420,8 +421,6 @@ template encodeTests(bool useEncodeJson)
     @(prefix ~ "encode non-default Nullable")
     unittest
     {
-        import std.typecons : Nullable;
-
         static struct Value
         {
             Nullable!int field;
@@ -439,6 +438,13 @@ template encodeTests(bool useEncodeJson)
         enum expected = `{ "field": null }`.parseJSON;
 
         actual.should.equal(expected);
+    }
+
+    @(prefix ~ "nullable value")
+    unittest
+    {
+        Nullable!int().encode.should.be(`null`);
+        5.nullable.encode.should.be(`5`);
     }
 
     static if (__traits(compiles, { import std.sumtype; }))
