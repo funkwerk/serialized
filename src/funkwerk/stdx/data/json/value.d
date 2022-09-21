@@ -48,7 +48,6 @@ struct JSONValue
         bool boolean; /// JSON `true` or `false` values
         double double_; /// The default field for storing numbers
         long integer; /// Only used if `LexOptions.useLong` was set for parsing
-        WrappedBigInt bigInt; /// Only used if `LexOptions.useBigInt` was set for parsing
         @disableIndex .string string; /// String value
         JSONValue[] array; /// Array or JSON values
         JSONValue[.string] object; /// Dictionary of JSON values (object)
@@ -215,17 +214,6 @@ unittest
     assert(objval["d"] == doubleval);
     assert(objval["d"] == 63.5);
     assert(objval == objval);
-}
-
-
-/// Proxy structure that stores BigInt as a pointer to save space in JSONValue
-static struct WrappedBigInt {
-    import std.bigint;
-    private BigInt* _pvalue;
-    ///
-    this(BigInt value) { _pvalue = new BigInt(value); }
-    ///
-    @property ref inout(BigInt) value() inout { return *_pvalue; }
 }
 
 

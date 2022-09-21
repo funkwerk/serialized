@@ -446,33 +446,19 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
     {
         import std.algorithm : among;
         import std.ascii;
-        import std.bigint;
         import std.math;
         import std.string;
         import std.traits;
 
         assert(!_input.empty, "Passed empty range to parseNumber");
 
-        static if (options & (LexOptions.useBigInt/*|LexOptions.useDecimal*/))
-            BigInt int_part = 0;
-        else
-            long int_part = 0;
+        long int_part = 0;
         bool neg = false;
 
         void setInt()
         {
             if (neg) int_part = -int_part;
-            static if (options & LexOptions.useBigInt)
-            {
-                static if (options & LexOptions.useLong)
-                {
-                    if (int_part >= long.min && int_part <= long.max) _front.number = int_part.toLong();
-                    else _front.number = int_part;
-                }
-                else _front.number = int_part;
-            }
-            //else static if (options & LexOptions.useDecimal) _front.number = Decimal(int_part, 0);
-            else _front.number = int_part;
+            _front.number = int_part;
         }
 
 
@@ -553,11 +539,7 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
             else*/ if (exponent == 0) _front.number = int_part;
             else
             {
-                static if (is(typeof(int_part) == BigInt))
-                {
-                    import std.conv : to;
-                    _front.number = exp10(exponent) * int_part.toDecimalString.to!double;
-                } else _front.number = exp10(exponent) * int_part;
+                _front.number = exp10(exponent) * int_part;
             }
         }
 
@@ -865,7 +847,6 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
 @safe struct JSONToken
 {
     import std.algorithm : among;
-    import std.bigint : BigInt;
 
     private alias Kind = JSONTokenKind; // compatibility alias
 
@@ -962,8 +943,6 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
     @property JSONNumber number(long value) nothrow @nogc { return this.number = JSONNumber(value); }
     /// ditto
     @property JSONNumber number(double value) nothrow @nogc { return this.number = JSONNumber(value); }
-    /// ditto
-    @property JSONNumber number(BigInt value) nothrow @nogc { return this.number = JSONNumber(value); }
 
     /// Gets/sets the string value of the token.
     @property const(JSONString) string() const pure nothrow @trusted @nogc
@@ -1226,31 +1205,15 @@ enum JSONTokenKind
  * Represents a JSON number literal with lazy conversion.
  */
 @safe struct JSONNumber {
-    import std.bigint;
-
     enum Type {
         double_,
-        long_,
-        bigInt/*,
-        decimal*/
-    }
-
-    private struct Decimal {
-        BigInt integer;
-        int exponent;
-
-        void opAssign(Decimal other) nothrow @nogc
-        {
-            integer = other.integer;
-            exponent = other.exponent;
-        }
+        long_
     }
 
     private {
         union {
             double _double;
             long _long;
-            Decimal _decimal;
         }
         Type _type = Type.long_;
     }
@@ -1261,8 +1224,6 @@ enum JSONTokenKind
     this(double value) nothrow @nogc { this.doubleValue = value; }
     /// ditto
     this(long value) nothrow @nogc { this.longValue = value; }
-    /// ditto
-    this(BigInt value) nothrow @nogc { this.bigIntValue = value; }
     // ditto
     //this(Decimal value) nothrow { this.decimalValue = value; }
 
@@ -1284,13 +1245,6 @@ enum JSONTokenKind
         {
             case Type.double_: return _double;
             case Type.long_: return cast(double)_long;
-            case Type.bigInt:
-            {
-                scope (failure) assert(false);
-                // FIXME: directly convert to double
-                return cast(double)_decimal.integer.toLong();
-            }
-            //case Type.decimal: try return cast(double)_decimal.integer.toLong() * 10.0 ^^ _decimal.exponent; catch(Exception) assert(false); // FIXME: directly convert to double
         }
     }
 
@@ -1316,20 +1270,6 @@ enum JSONTokenKind
         {
             case Type.double_: return rndtol(_double);
             case Type.long_: return _long;
-            case Type.bigInt:
-            {
-                scope (failure) assert(false);
-                return _decimal.integer.toLong();
-            }
-            /*
-            case Type.decimal:
-            {
-                scope (failure) assert(0);
-                if (_decimal.exponent == 0) return _decimal.integer.toLong();
-                else if (_decimal.exponent > 0) return (_decimal.integer * BigInt(10) ^^ _decimal.exponent).toLong();
-                else return (_decimal.integer / BigInt(10) ^^ -_decimal.exponent).toLong();
-            }
-            */
         }
     }
 
@@ -1339,70 +1279,6 @@ enum JSONTokenKind
         _type = Type.long_;
         return _long = value;
     }
-
-    /**
-     * Returns the number as a $(D BigInt) value.
-     *
-     * Regardless of the current type of this number, this property will always
-     * yield a value converted to $(D BigInt). Setting this property will
-     * automatically update the number type to $(D Type.bigInt).
-     */
-    @property BigInt bigIntValue() const nothrow @trusted
-    {
-        import std.math;
-
-        final switch (_type)
-        {
-            case Type.double_: return BigInt(rndtol(_double)); // FIXME: convert to string and then to bigint
-            case Type.long_: return BigInt(_long);
-            case Type.bigInt: return _decimal.integer;
-            /*case Type.decimal:
-                try
-                {
-                    if (_decimal.exponent == 0) return _decimal.integer;
-                    else if (_decimal.exponent > 0) return _decimal.integer * BigInt(10) ^^ _decimal.exponent;
-                    else return _decimal.integer / BigInt(10) ^^ -_decimal.exponent;
-                }
-                catch (Exception) assert(false);*/
-        }
-    }
-    /// ditto
-    @property BigInt bigIntValue(BigInt value) nothrow @trusted @nogc
-    {
-        _type = Type.bigInt;
-        _decimal.exponent = 0;
-        return _decimal.integer = value;
-    }
-
-    /+/**
-     * Returns the number as a $(D Decimal) value.
-     *
-     * Regardless of the current type of this number, this property will always
-     * yield a value converted to $(D Decimal). Setting this property will
-     * automatically update the number type to $(D Type.decimal).
-     */
-    @property Decimal decimalValue() const nothrow @trusted
-    {
-        import std.bitmanip;
-        import std.math;
-
-        final switch (_type)
-        {
-            case Type.double_:
-                Decimal ret;
-                assert(false, "TODO");
-            case Type.long_: return Decimal(BigInt(_long), 0);
-            case Type.bigInt: return Decimal(_decimal.integer, 0);
-            case Type.decimal: return _decimal;
-        }
-    }
-    /// ditto
-    @property Decimal decimalValue(Decimal value) nothrow @trusted
-    {
-        _type = Type.decimal;
-        try return _decimal = value;
-        catch (Exception) assert(false);
-    }+/
 
     /// Makes a JSONNumber behave like a $(D double) by default.
     alias doubleValue this;
@@ -1416,20 +1292,12 @@ enum JSONTokenKind
         final switch (_type) {
             case Type.double_: _double = other._double; break;
             case Type.long_: _long = other._long; break;
-            case Type.bigInt/*, Type.decimal*/:
-                {
-                    scope (failure) assert(false);
-                    _decimal = other._decimal;
-                }
-                break;
         }
     }
     /// ditto
     void opAssign(double value) nothrow @nogc { this.doubleValue = value; }
     /// ditto
     void opAssign(long value) nothrow @nogc { this.longValue = value; }
-    /// ditto
-    void opAssign(BigInt value) nothrow @nogc { this.bigIntValue = value; }
     // ditto
     //void opAssign(Decimal value) { this.decimalValue = value; }
 
@@ -1492,8 +1360,6 @@ unittest
 
 @safe unittest // assignment operator
 {
-    import std.bigint;
-
     JSONNumber num, num2;
 
     num = 1.0;
@@ -1509,90 +1375,40 @@ unittest
     num2 = num;
     assert(num2.type == JSONNumber.Type.long_);
     assert(num2.longValue == 1);
-
-    num = BigInt(1);
-    assert(num.type == JSONNumber.Type.bigInt);
-    assert(num.bigIntValue == 1);
-    num2 = num;
-    assert(num2.type == JSONNumber.Type.bigInt);
-    assert(num2.bigIntValue == 1);
-
-    /*num = JSONNumber.Decimal(BigInt(1), 0);
-    assert(num.type == JSONNumber.Type.decimal);
-    assert(num.decimalValue == JSONNumber.Decimal(BigInt(1), 0));
-    num2 = num;
-    assert(num2.type == JSONNumber.Type.decimal);
-    assert(num2.decimalValue == JSONNumber.Decimal(BigInt(1), 0));*/
 }
 
 @safe unittest // property access
 {
-    import std.bigint;
-
     JSONNumber num;
 
     num.longValue = 2;
     assert(num.type == JSONNumber.Type.long_);
     assert(num.longValue == 2);
     assert(num.doubleValue == 2.0);
-    assert(num.bigIntValue == 2);
     //assert(num.decimalValue.integer == 2 && num.decimalValue.exponent == 0);
 
     num.doubleValue = 2.0;
     assert(num.type == JSONNumber.Type.double_);
     assert(num.longValue == 2);
     assert(num.doubleValue == 2.0);
-    assert(num.bigIntValue == 2);
     //assert(num.decimalValue.integer == 2 * 10 ^^ -num.decimalValue.exponent);
-
-    num.bigIntValue = BigInt(2);
-    assert(num.type == JSONNumber.Type.bigInt);
-    assert(num.longValue == 2);
-    assert(num.doubleValue == 2.0);
-    assert(num.bigIntValue == 2);
-    //assert(num.decimalValue.integer == 2 && num.decimalValue.exponent == 0);
-
-    /*num.decimalValue = JSONNumber.Decimal(BigInt(2), 0);
-    assert(num.type == JSONNumber.Type.decimal);
-    assert(num.longValue == 2);
-    assert(num.doubleValue == 2.0);
-    assert(num.bigIntValue == 2);
-    assert(num.decimalValue.integer == 2 && num.decimalValue.exponent == 0);*/
 }
 
 @safe unittest // negative numbers
 {
-    import std.bigint;
-
     JSONNumber num;
 
     num.longValue = -2;
     assert(num.type == JSONNumber.Type.long_);
     assert(num.longValue == -2);
     assert(num.doubleValue == -2.0);
-    assert(num.bigIntValue == -2);
     //assert(num.decimalValue.integer == -2 && num.decimalValue.exponent == 0);
 
     num.doubleValue = -2.0;
     assert(num.type == JSONNumber.Type.double_);
     assert(num.longValue == -2);
     assert(num.doubleValue == -2.0);
-    assert(num.bigIntValue == -2);
     //assert(num.decimalValue.integer == -2 && num.decimalValue.exponent == 0);
-
-    num.bigIntValue = BigInt(-2);
-    assert(num.type == JSONNumber.Type.bigInt);
-    assert(num.longValue == -2);
-    assert(num.doubleValue == -2.0);
-    assert(num.bigIntValue == -2);
-    //assert(num.decimalValue.integer == -2 && num.decimalValue.exponent == 0);
-
-    /*num.decimalValue = JSONNumber.Decimal(BigInt(-2), 0);
-    assert(num.type == JSONNumber.Type.decimal);
-    assert(num.longValue == -2);
-    assert(num.doubleValue == -2.0);
-    assert(num.bigIntValue == -2);
-    assert(num.decimalValue.integer == -2 && num.decimalValue.exponent == 0);*/
 }
 
 
@@ -1606,8 +1422,6 @@ enum LexOptions {
     noTrackLocation = 1<<0, /// Counts lines and columns while lexing the source
     noThrow         = 1<<1, /// Uses JSONToken.Kind.error instead of throwing exceptions
     useLong         = 1<<2, /// Use long to represent integers
-    useBigInt       = 1<<3, /// Use BigInt to represent integers (if larger than long or useLong is not given)
-    //useDecimal      = 1<<4, /// Use Decimal to represent floating point numbers
     specialFloatLiterals = 1<<5, /// Support "NaN", "Infinite" and "-Infinite" as valid number literals
 }
 

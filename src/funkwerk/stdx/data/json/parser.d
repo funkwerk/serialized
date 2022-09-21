@@ -105,13 +105,6 @@ unittest { // issue #22
     assert(jv["a"].to!int == 1234);
 }
 
-/*unittest
-{
-    import std.bigint;
-    auto v = toJSONValue!(LexOptions.useBigInt)(`{"big": 12345678901234567890}`);
-    assert(v["big"].value == BigInt("12345678901234567890"));
-}*/
-
 @safe unittest
 {
     import std.exception;
@@ -199,7 +192,6 @@ JSONValue parseJSONValue(LexOptions options = LexOptions.init, Input)(ref Input 
             {
                 case JSONNumber.Type.double_: ret = tokens.front.number.doubleValue; break;
                 case JSONNumber.Type.long_: ret = tokens.front.number.longValue; break;
-                case JSONNumber.Type.bigInt: () @trusted { ret = WrappedBigInt(tokens.front.number.bigIntValue); } (); break;
             }
             break;
         case string: ret = JSONValue(tokens.front.string); break;

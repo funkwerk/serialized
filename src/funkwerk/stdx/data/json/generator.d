@@ -16,7 +16,6 @@ module funkwerk.stdx.data.json.generator;
 import funkwerk.stdx.data.json.lexer;
 import funkwerk.stdx.data.json.parser;
 import funkwerk.stdx.data.json.value;
-import std.bigint;
 import std.range;
 
 
@@ -297,8 +296,6 @@ struct JSONOutputRange(R, GeneratorOptions options = GeneratorOptions.init)
     /// ditto
     void put(long value) { m_output.writeNumber(value); }
     /// ditto
-    void put(BigInt value) { m_output.writeNumber(value); }
-    /// ditto
     void put(double value) { m_output.writeNumber!options(value); }
     /// ditto
     void put(JSONString value)
@@ -392,11 +389,6 @@ enum GeneratorOptions {
         case JSONValue.Kind.boolean: output.put(value == true ? "true" : "false"); break;
         case JSONValue.Kind.double_: output.writeNumber!options(cast(double)value); break;
         case JSONValue.Kind.integer: output.writeNumber(cast(long)value); break;
-        case JSONValue.Kind.bigInt: () @trusted {
-            auto val = cast(BigInt*)value;
-            if (val is null) throw new Exception("Null BigInt value");
-            output.writeNumber(*val);
-            }(); break;
         case JSONValue.Kind.string: output.put('"'); output.escapeString!(options & GeneratorOptions.escapeUnicode)(get!string(value)); output.put('"'); break;
         case JSONValue.Kind.object:
             output.put('{');
@@ -443,7 +435,6 @@ private void writeNumber(GeneratorOptions options, R)(ref R dst, JSONNumber num)
     {
         case JSONNumber.Type.double_: dst.writeNumber!options(num.doubleValue); break;
         case JSONNumber.Type.long_: dst.writeNumber(num.longValue); break;
-        case JSONNumber.Type.bigInt: dst.writeNumber(num.bigIntValue); break;
     }
 }
 
@@ -471,11 +462,6 @@ private void writeNumber(R)(ref R dst, long num) @trusted
 {
     import std.format;
     dst.formattedWrite("%d", num);
-}
-
-private void writeNumber(R)(ref R dst, BigInt num) @trusted
-{
-    () @trusted { num.toString(str => dst.put(str), null); } ();
 }
 
 @safe unittest
