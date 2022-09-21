@@ -452,13 +452,13 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
 
         assert(!_input.empty, "Passed empty range to parseNumber");
 
-        long int_part = 0;
+        ulong int_part = 0;
         bool neg = false;
 
         void setInt()
         {
-            if (neg) int_part = -int_part;
-            _front.number = int_part;
+            if (neg) _front.number = -int_part;
+            else _front.number = int_part;
         }
 
 
@@ -534,13 +534,13 @@ struct JSONLexerRange(Input, LexOptions options = LexOptions.init)
 
         void setFloat()
         {
-            if (neg) int_part = -int_part;
             /*static if (options & LexOptions.useDecimal) _front.number = Decimal(int_part, exponent);
             else*/ if (exponent == 0) _front.number = int_part;
             else
             {
                 _front.number = exp10(exponent) * int_part;
             }
+            if (neg) _front.number = -_front.number;
         }
 
         // post decimal point part

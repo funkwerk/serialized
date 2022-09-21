@@ -330,7 +330,7 @@ private struct StringSink
                     this.output.formattedWrite("%s", token.long_);
                     break;
                 case double_:
-                    this.output.formattedWrite("%s", token.double_);
+                    this.output.formattedWrite("%.16g", token.double_);
                     break;
                 case string_:
                     this.output.put("\"");
