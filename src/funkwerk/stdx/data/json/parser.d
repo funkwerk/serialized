@@ -730,7 +730,7 @@ struct JSONParserNode
      *
      * Setting the literal will automatically switch the node kind.
      */
-    @property ref inout(JSONToken) literal() inout @trusted nothrow
+    @property ref inout(JSONToken) literal() return inout @trusted nothrow
     {
         assert(_kind == Kind.literal);
         return _literal;

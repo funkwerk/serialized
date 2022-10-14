@@ -276,7 +276,11 @@ private SumType!Types decodeSumType(Types...)(XmlNode node)
         format!`Element "%s": no child element of %(%s, %)`(node.tag, [staticMap!(typeName, Types)]));
     enforce!XmlException(matchedValues == 1,
         format!`Element "%s": contained more than one of %(%s, %)`(node.tag, [staticMap!(typeName, Types)]));
-    return decodedValues[].find!(a => !a.isNull).front.get;
+
+    // workaround for dmd2.100 issue (get returns ref)
+    auto result = decodedValues[].find!(a => !a.isNull).front.get;
+
+    return result;
 }
 
 private SumType!Types[] decodeSumTypeArray(Types...)(XmlNode node)

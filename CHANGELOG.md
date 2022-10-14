@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2022-10-14
+### Fixed
+- Support DMD 2.100.
+
+## [1.6.3] - 2022-09-21
+### Fixed
+- Improve quality of float/double encoding.
+
+## [1.6.2] - 2022-08-10
+### Changed
+- XML: Handle `Nullable` values as empty tags, if they're not `@Default`.
+
+## [1.6.1] - 2022-08-10
+### Fixed
+- JSON: Encode `Nullable.null` as `null`.
+
 ## [1.5.6] - 2022-07-15
 ### Fixed
 - When an invariant is violated while JSON decoding a type, we now throw a parser exception.

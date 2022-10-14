@@ -100,7 +100,7 @@ private void encodeJsonStream(T, alias transform, Range, attributes...)(ref Rang
             }
             output.put(JSONOutputToken.objectEnd);
         }
-        else static if (isIterable!Type)
+        else static if (isIterable!Type && !is(Type : Nullable!V, V))
         {
             output.put(JSONOutputToken.arrayStart);
             foreach (element; value)

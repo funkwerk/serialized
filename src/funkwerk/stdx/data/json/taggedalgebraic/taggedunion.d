@@ -276,7 +276,7 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 		See_Also: `set`, `opAssign`
 	*/
 	@property ref inout(FieldTypes[kind]) value(Kind kind)()
-	inout {
+	inout return {
 		if (this.kind != kind) {
 			enum msg(.string k_is) = "Attempt to get kind "~kind.stringof~" from tagged union with kind "~k_is;
 			final switch (this.kind) {
@@ -286,7 +286,7 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 			}
 		}
 		//return trustedGet!(FieldTypes[kind]);
-		return *() @trusted { return cast(const(FieldTypes[kind])*)m_data.ptr; } ();
+		return *() return @trusted { return cast(const(FieldTypes[kind])*)m_data.ptr; } ();
 	}
 
 
