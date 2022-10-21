@@ -177,12 +177,19 @@ do
 
         static if (is(MemberType : Nullable!Arg, Arg))
         {
-            bool includeMember = !memberValue.isNull;
+            const bool includeMember = !memberValue.isNull;
             enum getMemberValue = "memberValue.get";
         }
         else
         {
-            enum includeMember = true;
+            static if (useDefault && constructorFieldSymbol.fieldDefault == MemberType.init)
+            {
+                const bool includeMember = memberValue != constructorFieldSymbol.fieldDefault;
+            }
+            else
+            {
+                enum bool includeMember = true;
+            }
             enum getMemberValue = "memberValue";
         }
 

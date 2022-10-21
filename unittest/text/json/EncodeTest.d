@@ -447,6 +447,33 @@ template encodeTests(bool useEncodeJson)
         5.nullable.encode.should.be(`5`);
     }
 
+    @(prefix ~ "default values")
+    unittest
+    {
+        static struct S
+        {
+            @(This.Default)
+            int i;
+
+            @(This.Default)
+            const(string)[] arr;
+
+            // Non-`T.init` default valued fields are still encoded.
+            @(This.Default!1)
+            int k;
+
+            mixin(GenerateThis);
+        }
+
+        // when
+        const actual = testEncode!S(S.init);
+
+        // then
+        const expected = `{ 'k': 1 }`.parseJSON;
+
+        actual.should.equal(expected);
+    }
+
     static if (__traits(compiles, { import std.sumtype; }))
     {
         @(prefix ~ "encode std.sumtype")
