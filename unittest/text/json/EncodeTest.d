@@ -460,7 +460,7 @@ template encodeTests(bool useEncodeJson)
 
             // Non-`T.init` default valued fields are still encoded.
             @(This.Default!1)
-            int k;
+            int k = 1;
 
             mixin(GenerateThis);
         }
@@ -469,7 +469,7 @@ template encodeTests(bool useEncodeJson)
         const actual = testEncode!S(S.init);
 
         // then
-        const expected = `{ 'k': 1 }`.parseJSON;
+        const expected = `{ "k": 1 }`.parseJSON;
 
         actual.should.equal(expected);
     }
